@@ -2,7 +2,7 @@ package Type;
 import java.util.Map;
 
 public class ArrayType extends Type{
-    private Type tabType;
+    private final Type tabType;
     
     /**
      * Constructeur
@@ -23,31 +23,39 @@ public class ArrayType extends Type{
     @Override
     public Map<UnknownType, Type> unify(Type t) {
         // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'unify'");
+        if (!(t instanceof ArrayType other)) {
+            throw new RuntimeException("Cannot unify array type with non-array type");
+        }
+
+        return this.tabType.unify(other.tabType);
+
     }
 
     @Override
     public Type substitute(UnknownType v, Type t) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'substitute'");
+        // Done
+        return new ArrayType(tabType.substitute(v, t));
     }
 
     @Override
     public boolean contains(UnknownType v) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'contains'");
+        // Done
+        return tabType.contains(v);
     }
 
     @Override
     public boolean equals(Object t) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'equals'");
+        // Done
+        if (this == t) return true;
+        if (!(t instanceof ArrayType other)) return false;
+        return this.tabType.equals(other.tabType);
+
     }
 
     @Override
     public String toString() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'toString'");
+        // Done
+        return "Array(" + tabType.toString() + ")";
     }
 
     
