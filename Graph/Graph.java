@@ -68,4 +68,29 @@ public abstract class Graph<T> {
         return s;
     }
 
+
+    public void printGraph() {
+        for (T u : this.vertices) {
+            System.out.println(u);
+
+            ArrayList<T> neighbors = this.adjList.get(u);
+
+            if (neighbors.isEmpty()) {
+                System.out.println("   └── ∅");
+
+            } else {
+                for (int i = 0; i < neighbors.size(); i++) {
+                    T v = neighbors.get(i);
+                    boolean isLast = (i == neighbors.size() - 1);
+
+                    if (isLast) {
+                        System.out.println("   └── " + v);
+                    }
+                    else
+                        System.out.println("   ├── " + v);
+                }
+            }
+        }
+    }
+
 }
