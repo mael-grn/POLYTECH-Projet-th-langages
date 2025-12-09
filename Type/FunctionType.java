@@ -1,10 +1,11 @@
 package Type;
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.function.Function;
 
 public class FunctionType extends Type {
-    private Type returnType;
-    private ArrayList<Type> argsTypes;
+    private final Type returnType;
+    private final ArrayList<Type> argsTypes;
     
     /**
      * Constructeur
@@ -43,32 +44,36 @@ public class FunctionType extends Type {
 
     @Override
     public Map<UnknownType, Type> unify(Type t) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'unify'");
+        if (!(t instanceof FunctionType other)){
+            throw new RuntimeException("Cannot unify array type with non-array type");
+        }
+        return this.returnType.unify(other.returnType);
     }
 
     @Override
     public Type substitute(UnknownType v, Type t) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'substitute'");
+        return new FunctionType(returnType.substitute(v,t), argsTypes);
     }
 
     @Override
     public boolean contains(UnknownType v) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'contains'");
+        return (argsTypes.contains(v) && returnType.contains(v));
+        //Done
     }
 
     @Override
     public boolean equals(Object t) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'equals'");
+
+        //Done
+        if (t== this){return true;}
+        if (!(t instanceof FunctionType other)) {return false;}
+        return (this.argsTypes == other.argsTypes && this.returnType == other.returnType);
     }
 
     @Override
     public String toString() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'toString'");
+        //Done
+        return ""+this;
     }
 
 }
