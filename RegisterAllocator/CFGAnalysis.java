@@ -112,10 +112,6 @@ public class CFGAnalysis {
     }
   }
 
-  // Dans votre fichier CFGAnalysis.java
-
-// ... (Les méthodes kill, gen, killBlock, genBlock restent inchangées)
-
 /**
  * Calcule les variables vivantes pour tous les blocs
  * @return Une liste de LiveVars pour chaque bloc
@@ -127,45 +123,28 @@ public List<LiveVars> computeLiveVariables() {
     
     // Initialisation
     for (int i = 0; i < numBlocks; i++) {
-        // Initialisation à l'ensemble vide
         liveVars.add(new LiveVars(new HashSet<>(), new HashSet<>()));
     }
 
     boolean changed = true;
     while (changed) {
         changed = false;
-        
-        // Itération rétrograde (Backward Analysis)
         for (int i = numBlocks - 1; i >= 0; i--) {
             List<Instruction> block = blocks.get(i);
             LiveVars currentLV = liveVars.get(i);
             
-            // --- 1. CALCUL LV_EXIT (Propagé des successeurs) ---
-            
             Set<Integer> oldExit = new HashSet<>(currentLV.exit);
             Set<Integer> newExit = new HashSet<>();
             
-            // On trouve la dernière instruction pour obtenir ses successeurs directs
             if (!block.isEmpty()) {
                 Instruction lastInst = block.get(block.size() - 1);
                 
-                // Utilise le graphe pour trouver les instructions successeurs de la dernière instruction
                 ArrayList<Instruction> succs = cfg.getGraph().getOutNeighbors(lastInst);
                 
                 if (succs != null) {
-                    // Pour chaque instruction successeur, on doit trouver son bloc
                     for (Instruction succInst : succs) {
-                        // Méthode corrigée : recherche du bloc qui commence par cette instruction, ou contient l'instruction.
-                        // La recherche du bloc qui contient l'instruction est la plus robuste 
-                        // si la numérotation des blocs est interne à la CFG.
-                        
-                        // NOTE IMPORTANTE : Pour être efficace, la CFG devrait fournir un mapping 
-                        // Instruction -> Bloc Index (ex: cfg.getBlockIndex(succInst)). 
-                        // Sans ce mapping, nous devons le simuler par une boucle.
-                        
                         int succBlockIndex = -1;
                         for (int j = 0; j < numBlocks; j++) {
-                            // On vérifie si l'instruction successeur appartient au bloc j
                             if (blocks.get(j).contains(succInst)) {
                                 succBlockIndex = j;
                                 break;
@@ -179,10 +158,7 @@ public List<LiveVars> computeLiveVariables() {
                 }
             }
             
-            // Mise à jour de LV_EXIT
             currentLV.exit = newExit;
-            
-            // --- 2. CALCUL LV_ENTRY (Équation de flot de données) ---
             
             Set<Integer> oldEntry = new HashSet<>(currentLV.entry);
             
@@ -191,15 +167,11 @@ public List<LiveVars> computeLiveVariables() {
             Set<Integer> genSet = genBlock(block);
             
             Set<Integer> newEntry = new HashSet<>(currentLV.exit);
-            newEntry.removeAll(killSet); // LVexit - KILL
-            newEntry.addAll(genSet); // (LVexit - KILL) union GEN
+            newEntry.removeAll(killSet);
+            newEntry.addAll(genSet);
             
-            // Mise à jour de LV_ENTRY
             currentLV.entry = newEntry;
-
-            // --- 3. CONVERGENCE (Vérification du changement) ---
             
-            // On vérifie si LV_EXIT ou LV_ENTRY ont changé
             if (!oldExit.equals(currentLV.exit) || !oldEntry.equals(currentLV.entry)) {
                 changed = true;
             }
