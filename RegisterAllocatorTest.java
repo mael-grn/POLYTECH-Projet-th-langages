@@ -1,8 +1,5 @@
 import Asm.*;
 import Graph.OrientedGraph;
-import Graph.UnorientedGraph;
-import RegisterAllocator.CFGAnalysis;
-import RegisterAllocator.ControlGraph;
 
 void main() {
   RegisterAllocator ra;
@@ -70,13 +67,4 @@ void main() {
   g = ra.generateControlGraph();
   // g.printGraph();
   System.out.println(RegisterAllocator.toDot(p, g));
-  ControlGraph cfg;
-  CFGAnalysis analysis = new CFGAnalysis(cfg);
-
-  UnorientedGraph<Integer> graph =
-          analysis.buildInterferenceGraph();
-
-  System.out.println("Nombre de sommets : " + graph.getNodes().size());
-  System.out.println("Nombre d'arêtes : " + graph.getEdges().size());
-
 }

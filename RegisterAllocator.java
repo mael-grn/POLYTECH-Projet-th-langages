@@ -1,19 +1,13 @@
 import Asm.*;
 import Graph.OrientedGraph;
-import Graph.UnorientedGraph;
-import RegisterAllocator.CFGAnalysis;
-import RegisterAllocator.ControlGraph;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 
 
-
 public class RegisterAllocator {
 
   private Program program;
-  private OrientedGraph<Instruction> cfg;
-
 
   public RegisterAllocator(Program p) {
     this.program = p;
@@ -117,7 +111,7 @@ public class RegisterAllocator {
         }
       }
     }
-    this.cfg = graph;
+
     return graph;
   }
 
@@ -145,39 +139,5 @@ public class RegisterAllocator {
     System.out.println("https://dreampuf.github.io/GraphvizOnline/?engine=dot");
     return s;
   }
-public void allocateRegisters() {
-
-    if (cfg == null) {
-        throw new IllegalStateException(
-            "CFG non généré. Appelez generateControlGraph() avant."
-        );
-    }
-
-    /* 1) Analyse : CFG + conflits */
-    CFGAnalysis analysis = new CFGAnalysis(cfg);
-    UnorientedGraph<Integer> graph =
-            analysis.buildInterferenceGraph();
-
-    /* 2) Coloration (gloutonne) */
-    int nbColors = graph.color();
-
-    /* 3) Vérification de la contrainte 32 registres */
-    if (nbColors > 32) {
-        System.err.println(
-            "Graphe de conflits non 32-colorable (" + nbColors + " couleurs)"
-        );
-        throw new RuntimeException(
-            "Spill mémoire nécessaire (stratégie expliquée dans le rapport)"
-        );
-    }
-
-    /* 4) Affichage de l’allocation */
-    System.out.println("=== ALLOCATION DES REGISTRES ===");
-    for (Integer r : graph.vertices) {   // vertices vient de Graph<T>
-        System.out.println(
-            "r" + r + " -> R" + graph.getColor(r)
-        );
-    }
-}
 
 }
