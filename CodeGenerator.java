@@ -51,6 +51,11 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
         this.types = types;
     }
 
+    /**
+     * On récupère le registre resultat, on stock sa valeur inversée (xor) dans un nouveau registre
+     * @param ctx the parse tree
+     * @return
+     */
     @Override
     public Program visitNegation(grammarTCLParser.NegationContext ctx) {
         Program program = visit(ctx.expr());
@@ -85,8 +90,16 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
         throw new UnsupportedOperationException("Unimplemented method 'visitInteger'");
     }
 
+    /**
+     * On récupère le registre resultat (on suppose qu'il contient l'indice de la valeur à récuperer en mémoire)
+     * On récupère la valeur correspondante en memoire et on la stock dans un nouveau registre
+     * @param ctx the parse tree
+     * @return
+     */
     @Override
     public Program visitTab_access(grammarTCLParser.Tab_accessContext ctx) {
+        // Quelles sont les expressions de ctx à ce moment de l'execution ?
+
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'visitTab_access'");
     }
@@ -123,24 +136,28 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
 
     @Override
     public Program visitMultiplication(grammarTCLParser.MultiplicationContext ctx) {
+        //Maël
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'visitMultiplication'");
     }
 
     @Override
     public Program visitEquality(grammarTCLParser.EqualityContext ctx) {
+        //Maël
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'visitEquality'");
     }
 
     @Override
     public Program visitTab_initialization(grammarTCLParser.Tab_initializationContext ctx) {
+        //Maël
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'visitTab_initialization'");
     }
 
     @Override
     public Program visitAddition(grammarTCLParser.AdditionContext ctx) {
+        //Maël
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'visitAddition'");
     }
@@ -177,24 +194,28 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
 
     @Override
     public Program visitBlock(grammarTCLParser.BlockContext ctx) {
+        //Maël
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'visitBlock'");
     }
 
     @Override
     public Program visitIf(grammarTCLParser.IfContext ctx) {
+        //Maël
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'visitIf'");
     }
 
     @Override
     public Program visitWhile(grammarTCLParser.WhileContext ctx) {
+        //Maël
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'visitWhile'");
     }
 
     @Override
     public Program visitFor(grammarTCLParser.ForContext ctx) {
+        //Maël
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'visitFor'");
     }
