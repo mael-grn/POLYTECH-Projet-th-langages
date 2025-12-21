@@ -1,13 +1,46 @@
 import java.util.Map;
 
+import Asm.*;
 import org.antlr.v4.runtime.tree.AbstractParseTreeVisitor;
-import Asm.Program;
 import Type.Type;
 import Type.UnknownType;
 
 public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements grammarTCLVisitor<Program> {
 
     private Map<UnknownType, Type> types;
+
+    private int registerCounter = 0;
+
+    /**
+     * Génère un nouveau numéro de registre unique.
+     * @return le numéro du nouveau registre
+     */
+    private int newRegister() {
+        return registerCounter++;
+    }
+
+    /**
+     * Pour récuperer le dernier registre utilisé dans la dernière instruction.
+     * Throw si la dernière instruction n'as pas utilisé de registre
+     * @param p le programme à verifier
+     * @return le numéro du dernier registre
+     */
+    private int getResultRegister(Program p) {
+        if (p.getInstructions().isEmpty()) {
+            throw new RuntimeException("Le programme est vide, impossible de récupérer le registre de résultat.");
+        }
+
+        Instruction lastInstr = p.getInstructions().getLast();
+
+        if (lastInstr instanceof UAL) {
+            return ((UAL) lastInstr).getDest();
+        } else if (lastInstr instanceof UALi) {
+            return ((UALi) lastInstr).getDest();
+        } else if (lastInstr instanceof Mem) {
+            return ((Mem) lastInstr).getDest();
+        }
+        throw new RuntimeException("Type d'instruction non supporté");
+    }
 
     /**
      * Constructeur
@@ -20,8 +53,12 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
 
     @Override
     public Program visitNegation(grammarTCLParser.NegationContext ctx) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'visitNegation'");
+        Program program = visit(ctx.expr());
+        int srcRegister = getResultRegister(program);
+        int destRegister = newRegister();
+        Instruction instruction = new UALi(UALi.Op.XOR, destRegister, srcRegister, 1);
+        program.addInstruction(instruction);
+        return program;
     }
 
     @Override
