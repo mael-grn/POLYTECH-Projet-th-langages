@@ -1,24 +1,45 @@
-import Asm.*;
+package RegisterAllocator;
+
 import Graph.OrientedGraph;
+import Asm.*;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
+public class ControlGraph {
+  private final Program program;
+  private final OrientedGraph<Instruction> graph;
+  private final List<List<Instruction>> blocks;
 
-public class RegisterAllocator {
+  public ControlGraph(Program program) {
+    this.program = program;
+    this.graph = new OrientedGraph<Instruction>();
+    this.blocks = new ArrayList<>();
+    generate();
+    generateBlocks();
+  }
 
-  private Program program;
+  /**
+   * Retourne le graphe de contrôle
+   */
+  public OrientedGraph<Instruction> getGraph() {
+    return graph;
+  }
 
-  public RegisterAllocator(Program p) {
-    this.program = p;
+  /**
+   * Retourne la liste des blocs de base
+   */
+  public List<List<Instruction>> getBlocks() {
+    return blocks;
   }
 
   /**
    * Génération du graphe de contrôle à partir du programme
+   * fonction appelée automatiquement dans le constructeur
    */
-  public OrientedGraph<Instruction> generateControlGraph() {
+  private void generate() {
     ArrayList<Instruction> instructions = program.getInstructions();
-    OrientedGraph<Instruction> graph = new OrientedGraph<Instruction>();
 
     // Une hashmap avec en clé les labels, et en valeur les instructions correspondantes
     HashMap<String, Instruction> instructionsWithLabel = new HashMap<>();
@@ -35,24 +56,14 @@ public class RegisterAllocator {
         instructionsWithLabel.put(i.getLabel(), i);
       }
 
-      //
+      // On remplit la HashMap des RET avec les CALLs qui y font référence
       if (i instanceof JumpCall && i.getName().equals("CALL")) {
         String callLabel = ((JumpCall) i).getAddress();
 
         // On cherche l'instruction RET suivante après le label pointé par le CALL
-        Instruction nextRetAfterLabel = null;
-        boolean isAfterLabel = false;
-        for (Instruction j : instructions) {
-          if (j.getLabel().equals(callLabel)) {
-            isAfterLabel = true;
-          }
+        Instruction nextRetAfterLabel = getNextRetAfterLabel(callLabel, instructions);
 
-          if (isAfterLabel && j instanceof Ret) {
-            nextRetAfterLabel = j;
-            break;
-          }
-        }
-
+        // On a appelé une fonction, mais aucun RET n'existe après le label appelé
         if (nextRetAfterLabel == null) {
           throw new RuntimeException("No RET for label " + callLabel + "but was called here : " + i.toString());
         }
@@ -111,18 +122,60 @@ public class RegisterAllocator {
         }
       }
     }
-
-    return graph;
   }
+
+
+  /**
+   * Génération des blocs de base
+   */
+  private void generateBlocks() {
+    ArrayList<Instruction> instructions = program.getInstructions();
+    List<Instruction> currentBlock = new ArrayList<>();
+    for (int i = 0; i < instructions.size(); i++) {
+      Instruction inst = instructions.get(i);
+      currentBlock.add(inst);
+      // Un bloc se termine si l'instruction est un saut, ou si elle a plusieurs successeurs, ou si la suivante a un label
+      ArrayList<Instruction> succs = graph.getOutNeighbors(inst);
+      boolean hasMultipleSuccs = succs != null && succs.size() > 1;
+      boolean isJumpOrRet = inst instanceof Ret;
+      boolean isJump = inst instanceof JumpCall;
+      boolean nextHasLabel = i + 1 < instructions.size() && instructions.get(i + 1).getLabel() != null;
+      if (hasMultipleSuccs || isJump || isJumpOrRet || nextHasLabel || i == instructions.size() - 1) {
+        blocks.add(new ArrayList<>(currentBlock));
+        currentBlock.clear();
+      }
+    }
+  }
+  
+  private Instruction getNextRetAfterLabel(String label, ArrayList<Instruction> instructions) {
+    boolean isAfterLabel = false;
+    for (Instruction j : instructions) {
+      if (j.getLabel() != null && j.getLabel().equals(label)) {
+        isAfterLabel = true;
+      }
+
+      if (isAfterLabel && j instanceof Ret) {
+        return j;
+      }
+    }
+    return null;
+  }
+
 
   /**
    * Conversion du graphe de contrôle en format DOT
    */
-  public static String toDot(Program p, OrientedGraph<Instruction> g) {
-    ArrayList<Instruction> instructions = p.getInstructions();
+  public String toDot() {
+    ArrayList<Instruction> instructions = program.getInstructions();
+
+    System.out.println(instructions);
+
     String s = "digraph G {\n";
     for (Instruction i : instructions) {
-      for (Instruction neighbor : g.getOutNeighbors(i)) {
+      ArrayList<Instruction> outNeighbors = graph.getOutNeighbors(i);
+      if (outNeighbors == null) continue;
+
+      for (Instruction neighbor : outNeighbors) {
         Integer index = instructions.indexOf(i);
         Integer neighborIndex = instructions.indexOf(neighbor);
         s += "\t\""
@@ -139,5 +192,4 @@ public class RegisterAllocator {
     System.out.println("https://dreampuf.github.io/GraphvizOnline/?engine=dot");
     return s;
   }
-
 }
