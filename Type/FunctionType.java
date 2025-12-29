@@ -1,5 +1,6 @@
 package Type;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -44,20 +45,40 @@ public class FunctionType extends Type {
 
     @Override
     public Map<UnknownType, Type> unify(Type t) {
-        if (!(t instanceof FunctionType other)){
-            throw new RuntimeException("Cannot unify array type with non-array type");
+        // Done
+        if (!(t instanceof FunctionType other)) {
+            throw new UnsupportedOperationException("Impossible d'unifier une fonction avec " + t);
         }
-        return this.returnType.unify(other.returnType);
+        Map<UnknownType, Type> s1 = this.returnType.unify(other.returnType);
+        Type r1 = this.returnType;
+        Type r2 = other.returnType;
+
+        for (Map.Entry<UnknownType, Type> entry : s1.entrySet()) {
+            r1 = r1.substitute(entry.getKey(), entry.getValue());
+            r2 = r2.substitute(entry.getKey(), entry.getValue());
+        }
+        Map<UnknownType, Type> s2 = r1.unify(r2);
+        Map<UnknownType, Type> result = new HashMap<>(s1);
+        result.replaceAll((_, type) -> {
+            Type updated = type;
+            for (Map.Entry<UnknownType, Type> entry : s2.entrySet()) {
+                updated = updated.substitute(entry.getKey(), entry.getValue());
+            }
+            return updated;
+        });
+        result.putAll(s2);
+        return result;
     }
 
     @Override
     public Type substitute(UnknownType v, Type t) {
-        return new FunctionType(returnType.substitute(v,t), argsTypes);
+        // Done
+        return new FunctionType(this.returnType.substitute(v,t), this.argsTypes);
     }
 
     @Override
     public boolean contains(UnknownType v) {
-        return (argsTypes.contains(v) && returnType.contains(v));
+        return argsTypes.contains(v) || returnType.contains(v);
         //Done
     }
 
@@ -67,13 +88,13 @@ public class FunctionType extends Type {
         //Done
         if (t== this){return true;}
         if (!(t instanceof FunctionType other)) {return false;}
-        return (this.argsTypes == other.argsTypes && this.returnType == other.returnType);
+        return this.returnType == other.returnType && this.argsTypes == other.argsTypes;
     }
 
     @Override
     public String toString() {
         //Done
-        return String.valueOf(this.returnType);
+        return "(" + this.returnType + " -> " + this.argsTypes + ")";
     }
 
 }

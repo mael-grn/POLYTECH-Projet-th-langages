@@ -24,6 +24,7 @@ public  class PrimitiveType extends Type {
 
     @Override
     public Map<UnknownType, Type> unify(Type t) {
+        // Done
         if (!(t instanceof PrimitiveType other)) {
             throw new UnsupportedOperationException("Cannot unify Primitive type with non-primitive type");
         }
@@ -35,6 +36,7 @@ public  class PrimitiveType extends Type {
 
     @Override
     public Type substitute(UnknownType v, Type t) {
+        // Done
         return this;
     }
 
@@ -42,9 +44,11 @@ public  class PrimitiveType extends Type {
     public boolean contains(UnknownType v) {
         return false;
     }
+    // Done
 
     @Override
     public boolean equals(Object t) {
+        // Done
         if (this==t) return true;
         if (!(t instanceof PrimitiveType other )) return false;
         return this.getType() == other.getType();
@@ -54,5 +58,6 @@ public  class PrimitiveType extends Type {
     public String toString() {
         return String.valueOf(this.getType());
     }
+    // Done
 
 }
