@@ -3,7 +3,7 @@ import java.util.Map;
 
 
 public abstract class Type {
-    public enum Base { INT, BOOL };
+    public enum Base { INT, BOOL }
 
     /**
      * Fonction de hashage pour les HashMap
@@ -20,7 +20,7 @@ public abstract class Type {
      */
     public abstract Map<UnknownType,Type> unify(Type t); 
 
-    /** 
+    /**
      * Test d'égalité
      * @param t Object
      * @return boolean 

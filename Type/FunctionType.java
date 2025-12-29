@@ -73,7 +73,7 @@ public class FunctionType extends Type {
     @Override
     public String toString() {
         //Done
-        return ""+this;
+        return String.valueOf(this.returnType);
     }
 
 }
