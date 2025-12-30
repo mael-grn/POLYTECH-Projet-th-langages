@@ -1,89 +1,175 @@
+import java.lang.ref.PhantomReference;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.antlr.v4.runtime.tree.AbstractParseTreeVisitor;
 
 import Type.Type;
+import Type.PrimitiveType;
 import Type.UnknownType;
-
+import Type.ArrayType;
+import Type.FunctionType;
 public class TyperVisitor extends AbstractParseTreeVisitor<Type> implements grammarTCLVisitor<Type> {
 
     private Map<UnknownType,Type> types = new HashMap<UnknownType,Type>();
-
+    private Map<String, Type> symbolTable = new HashMap<>();
     public Map<UnknownType, Type> getTypes() {
         return types;
     }
 
     @Override
     public Type visitNegation(grammarTCLParser.NegationContext ctx) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'visitNegation'");
+        // Done
+        Type t = visit(ctx.expr());
+        Type boolType = new PrimitiveType(Type.Base.BOOL);
+
+        Map<UnknownType, Type> res = t.unify(boolType);
+        this.updateSubstitutions(t.unify(boolType));
+        return boolType;
     }
 
     @Override
     public Type visitComparison(grammarTCLParser.ComparisonContext ctx) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'visitComparison'");
-    }
+        // Done
+        Type leftType = visit(ctx.expr(0));
+        Type rightType = visit(ctx.expr(1));
+        Type intType = new PrimitiveType(Type.Base.INT);
+        this.updateSubstitutions(leftType.unify(intType));
+        this.updateSubstitutions(rightType.unify(intType));
 
+        return new PrimitiveType(Type.Base.BOOL);
+    }
+    private void updateSubstitutions(Map<UnknownType, Type> newSubsts) {
+        for (Map.Entry<UnknownType, Type> entry : newSubsts.entrySet()) {
+            UnknownType v = entry.getKey();
+            Type t = entry.getValue();
+            this.types.replaceAll((var, existingType) ->existingType.substitute(v,t));
+            this.types.put(v,t);
+        }
+    }
     @Override
     public Type visitOr(grammarTCLParser.OrContext ctx) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'visitOr'");
+        // Done
+        Type leftType = visit(ctx.expr(0));
+        Type rightType = visit(ctx.expr(1));
+        Type boolType = new PrimitiveType(Type.Base.BOOL);
+
+        this.updateSubstitutions(leftType.unify(boolType));
+        this.updateSubstitutions(rightType.unify(boolType));
+        return boolType;
     }
 
     @Override
     public Type visitOpposite(grammarTCLParser.OppositeContext ctx) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'visitOpposite'");
+        // Dnoe
+        Type t = visit(ctx.expr());
+        Type intType = new PrimitiveType(Type.Base.INT);
+        this.updateSubstitutions(t.unify(intType));
+        return intType;
     }
 
     @Override
     public Type visitInteger(grammarTCLParser.IntegerContext ctx) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'visitInteger'");
+        //Done
+        return new PrimitiveType(Type.Base.INT);
     }
 
     @Override
     public Type visitTab_access(grammarTCLParser.Tab_accessContext ctx) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'visitTab_access'");
+        // Done
+        Type tabType = ctx.expr(0).accept(this);
+        Type t = ctx.expr(1).accept(this);
+
+        this.updateSubstitutions(t.unify(new PrimitiveType(Type.Base.INT)));
+        Type contentVar = new UnknownType();
+        Type expectedTabType = new ArrayType(contentVar);
+        this.updateSubstitutions(tabType.unify(expectedTabType));
+
+        return applyAll(contentVar);
+    }
+    private Type applyAll(Type t){
+        Type result = t;
+        for (Map.Entry<UnknownType, Type> entry : types.entrySet()) {
+            result = result.substitute(entry.getKey(), entry.getValue());
+        }
+        return result;
     }
 
     @Override
     public Type visitBrackets(grammarTCLParser.BracketsContext ctx) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'visitBrackets'");
+        // Done
+        return ctx.expr().accept(this);
     }
 
     @Override
     public Type visitCall(grammarTCLParser.CallContext ctx) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'visitCall'");
+        // Done
+        Type fctType = ctx.expr(0).accept(this);
+        ArrayList<Type> provideArgs = new ArrayList<>();
+
+        for (int i=1; i<ctx.expr().size(); i++) {
+            provideArgs.add(ctx.expr(i).accept(this));
+        }
+        ArrayList<Type> expArgsVars = new ArrayList<>();
+        for (int i=0; i< provideArgs.size(); i++){
+            expArgsVars.add(new UnknownType());
+        }
+        UnknownType returnVar = new UnknownType();
+        FunctionType expFctStruct = new FunctionType(returnVar, expArgsVars);
+        this.updateSubstitutions(fctType.unify(expFctStruct));
+
+        for (int i=0; i<provideArgs.size();i++){
+            Type currentArgExp = applyAll(expArgsVars.get(i));
+            this.updateSubstitutions(provideArgs.get(i).unify(currentArgExp));
+        }
+
+        return applyAll(returnVar);
     }
 
     @Override
     public Type visitBoolean(grammarTCLParser.BooleanContext ctx) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'visitBoolean'");
+        // Done
+        return new PrimitiveType(Type.Base.BOOL);
     }
 
     @Override
     public Type visitAnd(grammarTCLParser.AndContext ctx) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'visitAnd'");
+        // Done
+        Type leftType = ctx.expr(0).accept(this);
+        Type rightType = ctx.expr(1).accept(this);
+        Type boolType = new PrimitiveType(Type.Base.BOOL);
+
+        this.updateSubstitutions(leftType.unify(boolType));
+        this.updateSubstitutions(rightType.unify(boolType));
+
+        return boolType;
     }
 
     @Override
     public Type visitVariable(grammarTCLParser.VariableContext ctx) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'visitVariable'");
+        // Done
+        String varName = ctx.ID().getText();
+
+        if (!symbolTable.containsKey((varName))) {
+            symbolTable.put(varName, new UnknownType());
+        }
+        Type t = symbolTable.get(varName);
+
+        return applyAll(t);
     }
 
     @Override
     public Type visitMultiplication(grammarTCLParser.MultiplicationContext ctx) {
         // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'visitMultiplication'");
+        Type leftType = ctx.expr(0).accept(this);
+        Type rightType = ctx.expr(1).accept(this);
+        Type intType = new PrimitiveType(Type.Base.INT);
+
+        this.updateSubstitutions(leftType.unify(intType));
+        this.updateSubstitutions(rightType.unify(intType));
+
+        return intType;
     }
 
     @Override
