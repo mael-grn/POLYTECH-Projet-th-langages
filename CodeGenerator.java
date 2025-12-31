@@ -99,6 +99,7 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
     @Override
     public Program visitTab_access(grammarTCLParser.Tab_accessContext ctx) {
         // Quelles sont les expressions de ctx à ce moment de l'execution ?
+        // COmment savoir a quel indice visiter et quelle tab ?
 
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'visitTab_access'");
@@ -240,8 +241,10 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
 
     @Override
     public Program visitMain(grammarTCLParser.MainContext ctx) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'visitMain'");
+        // Le main consiste à mettre le label main devant la prochaine instruction
+        Program program = visitChildren(ctx);
+        program.getInstructions().getFirst().setLabel("main");
+        return program;
     }
 
 
