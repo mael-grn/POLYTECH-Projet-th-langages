@@ -58,7 +58,7 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
      */
     @Override
     public Program visitNegation(grammarTCLParser.NegationContext ctx) {
-        Program program = visit(ctx.expr());
+        Program program = visitChildren(ctx);
         int srcRegister = getResultRegister(program);
         int destRegister = newRegister();
         Instruction instruction = new UALi(UALi.Op.XOR, destRegister, srcRegister, 1);
@@ -177,8 +177,12 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
 
     @Override
     public Program visitDeclaration(grammarTCLParser.DeclarationContext ctx) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'visitDeclaration'");
+        // On initialise un nouveau registre à zéro
+        Program program = visitChildren(ctx);
+        int destRegister = newRegister();
+        Instruction instruction = new UAL(UAL.Op.XOR, destRegister, destRegister, destRegister);
+        program.addInstruction(instruction);
+        return program;
     }
 
     @Override
@@ -229,8 +233,9 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
 
     @Override
     public Program visitCore_fct(grammarTCLParser.Core_fctContext ctx) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'visitCore_fct'");
+        // Il n'y a rien à faire ?
+        Program program = visitChildren(ctx);
+        return program;
     }
 
     @Override
