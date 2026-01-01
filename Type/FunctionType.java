@@ -1,10 +1,12 @@
 package Type;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
 
 public class FunctionType extends Type {
-    private Type returnType;
-    private ArrayList<Type> argsTypes;
+    private final Type returnType;
+    private final ArrayList<Type> argsTypes;
     
     /**
      * Constructeur
@@ -43,32 +45,56 @@ public class FunctionType extends Type {
 
     @Override
     public Map<UnknownType, Type> unify(Type t) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'unify'");
+        // Done
+        if (!(t instanceof FunctionType other)) {
+            throw new UnsupportedOperationException("Impossible d'unifier une fonction avec " + t);
+        }
+        Map<UnknownType, Type> s1 = this.returnType.unify(other.returnType);
+        Type r1 = this.returnType;
+        Type r2 = other.returnType;
+
+        for (Map.Entry<UnknownType, Type> entry : s1.entrySet()) {
+            r1 = r1.substitute(entry.getKey(), entry.getValue());
+            r2 = r2.substitute(entry.getKey(), entry.getValue());
+        }
+        Map<UnknownType, Type> s2 = r1.unify(r2);
+        Map<UnknownType, Type> result = new HashMap<>(s1);
+        result.replaceAll((key, type) -> {
+            Type updated = type;
+            for (Map.Entry<UnknownType, Type> entry : s2.entrySet()) {
+                updated = updated.substitute(entry.getKey(), entry.getValue());
+            }
+            return updated;
+        });
+        result.putAll(s2);
+        return result;
     }
 
     @Override
     public Type substitute(UnknownType v, Type t) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'substitute'");
+        // Done
+        return new FunctionType(this.returnType.substitute(v,t), this.argsTypes);
     }
 
     @Override
     public boolean contains(UnknownType v) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'contains'");
+        return argsTypes.contains(v) || returnType.contains(v);
+        //Done
     }
 
     @Override
     public boolean equals(Object t) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'equals'");
+
+        //Done
+        if (t== this){return true;}
+        if (!(t instanceof FunctionType other)) {return false;}
+        return this.returnType == other.returnType && this.argsTypes == other.argsTypes;
     }
 
     @Override
     public String toString() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'toString'");
+        //Done
+        return "(" + this.returnType + " -> " + this.argsTypes + ")";
     }
 
 }

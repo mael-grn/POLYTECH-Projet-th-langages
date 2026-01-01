@@ -22,25 +22,25 @@ public class ArrayType extends Type{
 
     @Override
     public Map<UnknownType, Type> unify(Type t) {
-        // TODO Auto-generated method stub
+        // Done
         if (!(t instanceof ArrayType other)) {
             throw new RuntimeException("Cannot unify array type with non-array type");
         }
 
-        return this.tabType.unify(other.tabType);
+        return this.getTabType().unify(other.getTabType());
 
     }
 
     @Override
     public Type substitute(UnknownType v, Type t) {
         // Done
-        return new ArrayType(tabType.substitute(v, t));
+        return new ArrayType(getTabType().substitute(v, t));
     }
 
     @Override
     public boolean contains(UnknownType v) {
         // Done
-        return tabType.contains(v);
+        return this.getTabType().contains(v);
     }
 
     @Override
@@ -48,14 +48,14 @@ public class ArrayType extends Type{
         // Done
         if (this == t) return true;
         if (!(t instanceof ArrayType other)) return false;
-        return this.tabType.equals(other.tabType);
+        return this.getTabType().equals(other.getTabType());
 
     }
 
     @Override
     public String toString() {
         // Done
-        return "Array(" + tabType.toString() + ")";
+        return "Array(" + this.getTabType().toString() + ")";
     }
 
     

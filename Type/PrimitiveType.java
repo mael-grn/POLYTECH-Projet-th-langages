@@ -1,8 +1,10 @@
 package Type;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 
 public  class PrimitiveType extends Type {
-    private Type.Base type; 
+    private final Type.Base type;
     
     /**
      * Constructeur
@@ -22,32 +24,40 @@ public  class PrimitiveType extends Type {
 
     @Override
     public Map<UnknownType, Type> unify(Type t) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'unify'");
+        // Done
+        if (!(t instanceof PrimitiveType other)) {
+            throw new UnsupportedOperationException("Cannot unify Primitive type with non-primitive type");
+        }
+        if (this.getType() != other.getType()) {
+            throw new UnsupportedOperationException("Échec d'unification : types primitifs différents");
+        }
+        return Collections.emptyMap();
     }
 
     @Override
     public Type substitute(UnknownType v, Type t) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'substitute'");
+        // Done
+        return this;
     }
 
     @Override
     public boolean contains(UnknownType v) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'contains'");
+        return false;
     }
+    // Done
 
     @Override
     public boolean equals(Object t) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'equals'");
+        // Done
+        if (this==t) return true;
+        if (!(t instanceof PrimitiveType other )) return false;
+        return this.getType() == other.getType();
     }
 
     @Override
     public String toString() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'toString'");
+        return String.valueOf(this.getType());
     }
+    // Done
 
 }

@@ -1,4 +1,5 @@
 package Type;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.antlr.v4.runtime.ParserRuleContext;
@@ -6,7 +7,7 @@ import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
 public class UnknownType extends Type {
-    private String varName;
+    private final String varName;
     private int varIndex;
     private static int newVariableCounter = 0;
 
@@ -72,32 +73,43 @@ public class UnknownType extends Type {
 
     @Override
     public Map<UnknownType, Type> unify(Type t) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'unify'");
+        // Done
+        Map<UnknownType, Type> sub = new HashMap<>();
+        if (this.equals(t)) {
+            return sub;
+        }
+        if (t.contains(this)) {
+            throw new UnsupportedOperationException("type récursif");
+        }
+        sub.put(this, t);
+        return sub;
     }
 
     @Override
     public Type substitute(UnknownType v, Type t) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'substitute'");
+        //Done
+        if (this.equals(v)) return t;
+        return this;
     }
 
     @Override
     public boolean contains(UnknownType v) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'contains'");
+        // Done
+        return this.equals(v);
     }
 
     @Override
     public boolean equals(Object t) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'equals'");
+        // Done
+        if (this == t) return true;
+        if (!(t instanceof UnknownType other)) return false;
+        return this.varName.equals(other.varName);
     }
 
     @Override
     public String toString() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'toString'");
+        // Done
+        return "?"+varName;
     }
 
     
