@@ -59,7 +59,7 @@ public class FunctionType extends Type {
         }
         Map<UnknownType, Type> s2 = r1.unify(r2);
         Map<UnknownType, Type> result = new HashMap<>(s1);
-        result.replaceAll((_, type) -> {
+        result.replaceAll((key, type) -> {
             Type updated = type;
             for (Map.Entry<UnknownType, Type> entry : s2.entrySet()) {
                 updated = updated.substitute(entry.getKey(), entry.getValue());
