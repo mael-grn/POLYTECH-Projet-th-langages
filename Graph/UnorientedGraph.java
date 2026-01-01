@@ -72,9 +72,4 @@ public class UnorientedGraph<T> extends Graph<T> {
         }
         return maxCol+1;
     }
-
-    public void addNode(Integer def) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'addNode'");
-    }
 }

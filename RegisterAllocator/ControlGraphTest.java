@@ -1,6 +1,8 @@
 package RegisterAllocator;
 
 import Asm.*;
+import Graph.UnorientedGraph;
+
 import java.util.List;
 
 public class ControlGraphTest {
@@ -15,15 +17,17 @@ public class ControlGraphTest {
                 "test:  ADDi R1 R0 5"
         }); */
 
-        /* p = RegisterAllocator.ProgramGenerator.compile(new String[] {
+        /* p = ProgramGenerator.compile(new String[] {
                 "       XOR R0 R0 R0",
+                "       XOR R1 R1 R1",
                 "       ADDi R0 R0 5",
+                "       SUBi R1 R1 5",
                 "       JEQU R1 R0 test",
                 "       XOR R0 R0 R0",
                 "test:  ADDi R1 R0 5"
         }); */
 
-        p = RegisterAllocator.ProgramGenerator.compile(new String[] {
+        /* p = ProgramGenerator.compile(new String[] {
                 "     XOR R0 R0 R0",
                 "     XOR R1 R1 R1",
                 "     XOR R2 R2 R2",
@@ -34,6 +38,21 @@ public class ControlGraphTest {
                 "     RET",
                 "B:   CALL A",
                 "     ADDi R2 R2 2"
+        }); */
+
+        p = ProgramGenerator.compile(new String[] {
+                "     XOR R0 R0 R0",
+                "     ADDi R1 R0 1",
+                "     XOR R2 R2 R2",
+                "     XOR R3 R3 R3",
+                "     ADDi R4 R3 3",
+                "WH:  JSEQ R2 R4 EWH",
+                "     ADD R1 R1 R1",
+                "     CALL INC",
+                "     JMP WH",
+                "EWH: JMP EWH",
+                "INC: ADDi R2 R2 1",
+                "     RET"
         });
 
         ControlGraph cfg = new ControlGraph(p);
@@ -45,11 +64,18 @@ public class ControlGraphTest {
 
         CFGAnalysis analysis = new CFGAnalysis(cfg);
         List<CFGAnalysis.LiveVars> liveVars = analysis.computeLiveVariables();
-        List<List<Instruction>> blocks = cfg.getBlocks();
-        for (int i = 0; i < blocks.size(); i++) {
-            System.out.println("\nBloc " + i + ":");
+        List<Instruction> instructions = cfg.getInstructions();
+        for (int i = 0; i < instructions.size(); i++) {
+            System.out.println("\nInstruction " + i + ":");
             System.out.println("LVentry = " + liveVars.get(i).entry);
             System.out.println("LVexit = " + liveVars.get(i).exit);
+        }
+
+        UnorientedGraph<Integer> interferenceGraph = analysis.buildInterferenceGraph();
+        interferenceGraph.color();
+
+        for (int i = 0; i <= 4; i++) {
+            System.out.println("Reg " + i + " -> Color " + interferenceGraph.getColor(i));
         }
     }
 }

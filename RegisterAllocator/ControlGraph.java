@@ -10,14 +10,11 @@ import java.util.List;
 public class ControlGraph {
   private final Program program;
   private final OrientedGraph<Instruction> graph;
-  private final List<List<Instruction>> blocks;
 
   public ControlGraph(Program program) {
     this.program = program;
     this.graph = new OrientedGraph<Instruction>();
-    this.blocks = new ArrayList<>();
     generate();
-    generateBlocks();
   }
 
   /**
@@ -27,11 +24,8 @@ public class ControlGraph {
     return graph;
   }
 
-  /**
-   * Retourne la liste des blocs de base
-   */
-  public List<List<Instruction>> getBlocks() {
-    return blocks;
+  public List<Instruction> getInstructions() {
+    return program.getInstructions();
   }
 
   /**
@@ -126,27 +120,11 @@ public class ControlGraph {
 
 
   /**
-   * Génération des blocs de base
+   * Retourne la prochaine instruction RET après un label donné
+   * @param label le label à chercher
+   * @param instructions la liste des instructions
+   * @return
    */
-  private void generateBlocks() {
-    ArrayList<Instruction> instructions = program.getInstructions();
-    List<Instruction> currentBlock = new ArrayList<>();
-    for (int i = 0; i < instructions.size(); i++) {
-      Instruction inst = instructions.get(i);
-      currentBlock.add(inst);
-      // Un bloc se termine si l'instruction est un saut, ou si elle a plusieurs successeurs, ou si la suivante a un label
-      ArrayList<Instruction> succs = graph.getOutNeighbors(inst);
-      boolean hasMultipleSuccs = succs != null && succs.size() > 1;
-      boolean isJumpOrRet = inst instanceof Ret;
-      boolean isJump = inst instanceof JumpCall;
-      boolean nextHasLabel = i + 1 < instructions.size() && instructions.get(i + 1).getLabel() != null;
-      if (hasMultipleSuccs || isJump || isJumpOrRet || nextHasLabel || i == instructions.size() - 1) {
-        blocks.add(new ArrayList<>(currentBlock));
-        currentBlock.clear();
-      }
-    }
-  }
-  
   private Instruction getNextRetAfterLabel(String label, ArrayList<Instruction> instructions) {
     boolean isAfterLabel = false;
     for (Instruction j : instructions) {
