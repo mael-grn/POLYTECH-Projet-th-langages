@@ -67,6 +67,7 @@ public class CFGAnalysis {
       default: break;
     }
 
+    // Éviter les doublons et le registre tué
     if (gen1 != null) genList.add(gen1);
     if (gen2 != null && !genList.contains(gen2)) {
       genList.add(gen2);
