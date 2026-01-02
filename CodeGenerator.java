@@ -30,7 +30,7 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
             throw new RuntimeException("Le programme est vide, impossible de récupérer le registre de résultat.");
         }
 
-        Instruction lastInstr = p.getInstructions().getLast();
+        Instruction lastInstr = p.getInstructions().get(p.getInstructions().size() - 1);
 
         if (lastInstr instanceof UAL) {
             return ((UAL) lastInstr).getDest();
@@ -58,7 +58,7 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
      */
     @Override
     public Program visitNegation(grammarTCLParser.NegationContext ctx) {
-        Program program = visitChildren(ctx);
+        Program program = visit(ctx.expr());
         int srcRegister = getResultRegister(program);
         int destRegister = newRegister();
         Instruction instruction = new UALi(UALi.Op.XOR, destRegister, srcRegister, 1);
@@ -68,26 +68,58 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
 
     @Override
     public Program visitComparison(grammarTCLParser.ComparisonContext ctx) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'visitComparison'");
+        Program left = visit(ctx.expr(0));
+        Program right = visit(ctx.expr(1));
+        Program program = new Program();
+        program.addInstructions(left);
+        program.addInstructions(right);
+        int leftReg = getResultRegister(left);
+        int rightReg = getResultRegister(right);
+        int destReg = newRegister();
+        Instruction cmpInstr = new UAL(UAL.Op.SUB, destReg, leftReg, rightReg);
+        program.addInstruction(cmpInstr);
+        return program;
     }
 
     @Override
     public Program visitOr(grammarTCLParser.OrContext ctx) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'visitOr'");
+        Program left = visit(ctx.expr(0));
+        Program right = visit(ctx.expr(1));
+        Program program = new Program();
+        program.addInstructions(left);
+        program.addInstructions(right);
+        int leftReg = getResultRegister(left);
+        int rightReg = getResultRegister(right);
+        int destReg = newRegister();
+        Instruction orInstr = new UAL(UAL.Op.OR, destReg, leftReg, rightReg);
+        program.addInstruction(orInstr);
+        return program;
     }
 
     @Override
     public Program visitOpposite(grammarTCLParser.OppositeContext ctx) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'visitOpposite'");
+        Program program = visit(ctx.expr());
+        int srcRegister = getResultRegister(program);
+        int destRegister = newRegister();
+        Instruction zeroInstr = new UAL(UAL.Op.SUB, destRegister, srcRegister, srcRegister); //dest = src - src, dest = 0
+        program.addInstruction(zeroInstr);
+        Instruction negInstr = new UAL(UAL.Op.SUB, destRegister, destRegister, srcRegister); //dest = dest - src, dest = -src
+        program.addInstruction(negInstr);
+        return program;
     }
 
     @Override
     public Program visitInteger(grammarTCLParser.IntegerContext ctx) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'visitInteger'");
+        int value = Integer.parseInt(ctx.INT().getText());
+        int destRegister = newRegister();
+        Program program = new Program();
+        // Registre à 0
+        Instruction zeroInstr = new UAL(UAL.Op.XOR, destRegister, destRegister, destRegister);
+        program.addInstruction(zeroInstr);
+        // Load de la valeur
+        Instruction loadInstr = new UALi(UALi.Op.ADD, destRegister, destRegister, value);
+        program.addInstruction(loadInstr);
+        return program;
     }
 
     /**
@@ -99,7 +131,6 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
     @Override
     public Program visitTab_access(grammarTCLParser.Tab_accessContext ctx) {
         // Quelles sont les expressions de ctx à ce moment de l'execution ?
-        // COmment savoir a quel indice visiter et quelle tab ?
 
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'visitTab_access'");
@@ -119,14 +150,32 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
 
     @Override
     public Program visitBoolean(grammarTCLParser.BooleanContext ctx) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'visitBoolean'");
+        String boolText = ctx.BOOL().getText();
+        int value = boolText.equals("true") ? 1 : 0;
+        int destRegister = newRegister();
+        Program program = new Program();
+        // registre à 0
+        Instruction zeroInstr = new UAL(UAL.Op.XOR, destRegister, destRegister, destRegister);
+        program.addInstruction(zeroInstr);
+        // Load la valeur du booléen (0 ou 1)
+        Instruction loadInstr = new UALi(UALi.Op.ADD, destRegister, destRegister, value);
+        program.addInstruction(loadInstr);
+        return program;
     }
 
     @Override
     public Program visitAnd(grammarTCLParser.AndContext ctx) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'visitAnd'");
+        Program left = visit(ctx.expr(0));
+        Program right = visit(ctx.expr(1));
+        Program program = new Program();
+        program.addInstructions(left);
+        program.addInstructions(right);
+        int leftReg = getResultRegister(left);
+        int rightReg = getResultRegister(right);
+        int destReg = newRegister();
+        Instruction andInstr = new UAL(UAL.Op.AND, destReg, leftReg, rightReg);
+        program.addInstruction(andInstr);
+        return program;
     }
 
     @Override
@@ -165,8 +214,8 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
 
     @Override
     public Program visitBase_type(grammarTCLParser.Base_typeContext ctx) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'visitBase_type'");
+        // Les types de bases ne génèrent pas de code; ils sont gérés dans les déclarations, donc pas de code
+        return new Program();
     }
 
     @Override
@@ -248,7 +297,7 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
     public Program visitMain(grammarTCLParser.MainContext ctx) {
         // Le main consiste à mettre le label main devant la prochaine instruction
         Program program = visitChildren(ctx);
-        program.getInstructions().getFirst().setLabel("main");
+        program.getInstructions().get(0).setLabel("main");
         return program;
     }
 
