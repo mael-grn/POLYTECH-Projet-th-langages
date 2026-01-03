@@ -495,9 +495,37 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
 
     @Override
     public Program visitWhile(grammarTCLParser.WhileContext ctx) {
-        //Maël
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'visitWhile'");
+        // Visite de l'expression conditionnelle
+        Program expProgram = visit(ctx.expr());
+
+        // Visite du bloc de l'instruction while
+        Program blockProgram = visitChildren(ctx);
+
+        // Récupération du registre contenant le résultat de la condition
+        int conditionRegister = getResultRegister(expProgram);
+
+        // Stockage de la valeur 0 (false) dans un registre temporaire
+        int falseRegister = newRegister();
+        expProgram.addInstruction(new UAL(UAL.Op.XOR, falseRegister, falseRegister, falseRegister));
+
+        // Instruction de saut conditionnel (si conditionRegister == 0 (false), sauter le bloc)
+        Instruction condInstr = new CondJump(CondJump.Op.JEQU, conditionRegister, falseRegister, "end_while_" + conditionRegister);
+        condInstr.setLabel("start_while_" + conditionRegister);
+        expProgram.addInstruction(condInstr);
+
+        // Fusion des programmes
+        expProgram.addInstructions(blockProgram);
+
+        // Ajout de l'instruction de retour au début de la condition
+        expProgram.addInstruction(new JumpCall(JumpCall.Op.JMP, "start_while_" + conditionRegister));
+
+        // Ajout d'un label de fin pour le saut conditionnel
+        // Nous utilisons une instruction inutile pour pouvoir y attacher un label
+        Instruction endIfLabel = new UAL(UAL.Op.XOR, falseRegister, falseRegister, falseRegister);
+        endIfLabel.setLabel("end_while_" + conditionRegister);
+        expProgram.addInstruction(endIfLabel);
+
+        return expProgram;
     }
 
     @Override
