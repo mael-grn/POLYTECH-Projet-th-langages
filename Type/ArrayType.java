@@ -3,7 +3,7 @@ import java.util.Map;
 
 public class ArrayType extends Type{
     private final Type tabType;
-    
+
     /**
      * Constructeur
      * @param t type des éléments du tableau
@@ -17,12 +17,15 @@ public class ArrayType extends Type{
      * @return type des éléments du tableau
      */
     public Type getTabType() {
-       return tabType;
+        return tabType;
     }
 
     @Override
     public Map<UnknownType, Type> unify(Type t) {
         // Done
+        if (t instanceof UnknownType) {
+            return t.unify(this);
+        }
         if (!(t instanceof ArrayType other)) {
             throw new RuntimeException("Cannot unify array type with non-array type");
         }
@@ -58,5 +61,5 @@ public class ArrayType extends Type{
         return "Array(" + this.getTabType().toString() + ")";
     }
 
-    
+
 }

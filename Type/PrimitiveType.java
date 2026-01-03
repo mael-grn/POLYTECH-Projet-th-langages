@@ -5,7 +5,7 @@ import java.util.Map;
 
 public  class PrimitiveType extends Type {
     private final Type.Base type;
-    
+
     /**
      * Constructeur
      * @param type type de base
@@ -25,6 +25,9 @@ public  class PrimitiveType extends Type {
     @Override
     public Map<UnknownType, Type> unify(Type t) {
         // Done
+        if (t instanceof UnknownType) {
+            return t.unify(this);
+        }
         if (!(t instanceof PrimitiveType other)) {
             throw new UnsupportedOperationException("Cannot unify Primitive type with non-primitive type");
         }

@@ -25,7 +25,7 @@ public class UnknownType extends Type {
      * @param n numéro de la variable
      */
     public UnknownType(String s, int n)  {
-        this.varName = s;        
+        this.varName = s;
         this.varIndex = n;
     }
 
@@ -73,7 +73,6 @@ public class UnknownType extends Type {
 
     @Override
     public Map<UnknownType, Type> unify(Type t) {
-        // Done
         Map<UnknownType, Type> sub = new HashMap<>();
         if (this.equals(t)) {
             return sub;
@@ -87,31 +86,24 @@ public class UnknownType extends Type {
 
     @Override
     public Type substitute(UnknownType v, Type t) {
-        //Done
         if (this.equals(v)) return t;
         return this;
     }
 
     @Override
     public boolean contains(UnknownType v) {
-        // Done
         return this.equals(v);
     }
 
     @Override
     public boolean equals(Object t) {
-        // Done
         if (this == t) return true;
         if (!(t instanceof UnknownType other)) return false;
-        return this.varName.equals(other.varName);
+        return this.varName.equals(other.varName) && this.varIndex == other.varIndex;
     }
 
     @Override
     public String toString() {
-        // Done
-        return "?"+varName;
+        return "?" + varName + "_" + varIndex;
     }
-
-    
-
 }

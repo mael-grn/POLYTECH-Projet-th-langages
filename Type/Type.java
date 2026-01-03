@@ -13,12 +13,12 @@ public abstract class Type {
         return this.toString().hashCode();
     }
 
-    /** 
+    /**
      * Unification
      * @param t type à unifier
      * @return la liste des substitutions à effectuer (null si pas unifiable)
      */
-    public abstract Map<UnknownType,Type> unify(Type t); 
+    public abstract Map<UnknownType,Type> unify(Type t);
 
     /**
      * Test d'égalité
@@ -27,14 +27,14 @@ public abstract class Type {
      */
     @Override public abstract boolean equals(Object t);
 
-    /** 
+    /**
      * Substitution
      * @param v type variable à substituer
      * @param t type par lequel remplacer v
      * @return Type obtenu en remplaçant v par t
      */
     public abstract Type substitute(UnknownType v, Type t);
-    
+
     /**
      * Applique plusieurs substitutions
      * @param h liste de substitutions
@@ -42,12 +42,12 @@ public abstract class Type {
      */
     public Type substituteAll(Map<UnknownType,Type> h){
         Type result = this;
-        for (UnknownType key : h.keySet()) 
+        for (UnknownType key : h.keySet())
             result = result.substitute(key, h.get(key));
         return result;
     }
-    
-    /** 
+
+    /**
      * Test si le type dépend du type variable v
      * @param v type variable
      * @return boolean 
