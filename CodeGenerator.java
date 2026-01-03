@@ -465,9 +465,32 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
 
     @Override
     public Program visitIf(grammarTCLParser.IfContext ctx) {
-        //Maël
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'visitIf'");
+        // Visite de l'expression conditionnelle
+        Program expProgram = visit(ctx.expr());
+
+        // Visite du bloc de l'instruction if
+        Program blockProgram = visitChildren(ctx);
+
+        // Récupération du registre contenant le résultat de la condition
+        int conditionRegister = getResultRegister(expProgram);
+
+        // Stockage de la valeur 0 (false) dans un registre temporaire
+        int falseRegister = newRegister();
+        expProgram.addInstruction(new UAL(UAL.Op.XOR, falseRegister, falseRegister, falseRegister));
+
+        // Instruction de saut conditionnel (si conditionRegister == 0 (false), sauter le bloc)
+        expProgram.addInstruction(new CondJump(CondJump.Op.JEQU, conditionRegister, falseRegister, "end_if_" + conditionRegister));
+
+        // Fusion des programmes
+        expProgram.addInstructions(blockProgram);
+
+        // Ajout d'un label de fin pour le saut conditionnel
+        // Nous utilisons une instruction inutile pour pouvoir y attacher un label
+        Instruction endIfLabel = new UAL(UAL.Op.XOR, falseRegister, falseRegister, falseRegister);
+        endIfLabel.setLabel("end_if_" + conditionRegister);
+        expProgram.addInstruction(endIfLabel);
+
+        return expProgram;
     }
 
     @Override
