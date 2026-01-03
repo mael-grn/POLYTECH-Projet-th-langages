@@ -22,13 +22,18 @@ public class ArrayType extends Type{
 
     @Override
     public Map<UnknownType, Type> unify(Type t) {
-        // Done
+        // Si c'est une inconnue, on inverse pour utiliser UnknownType.unify
+        if (t instanceof UnknownType) {
+            return t.unify(this);
+        }
+
+        // Si ce n'est pas un tableau et pas une inconnue, là on peut rouspéter
         if (!(t instanceof ArrayType other)) {
             throw new RuntimeException("Cannot unify array type with non-array type");
         }
 
+        // Si c'est un autre tableau, on unifie le contenu
         return this.getTabType().unify(other.getTabType());
-
     }
 
     @Override

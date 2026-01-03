@@ -1,4 +1,8 @@
 int main() {
-    int x = 0;
-    return x;
+if (0 == 1) {
+return 1;
+} else {
+return 0;
+}
+return {x};
 }

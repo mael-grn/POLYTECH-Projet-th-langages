@@ -23,16 +23,15 @@ public  class PrimitiveType extends Type {
 
     @Override
     public Map<UnknownType, Type> unify(Type t) {
-        // Done
-        if (t instanceof UnknownType) {
-            // UnknownType unify avec PrimitiveType
-            return t.unify(this);  // Déléguer à UnknownType.unify()
-        }
+        if (t instanceof UnknownType) return t.unify(this);
+
         if (!(t instanceof PrimitiveType other)) {
-            throw new UnsupportedOperationException("Cannot unify Primitive type with non-primitive type");
+            throw new RuntimeException("Incompatible types: Primitive vs " + t);
         }
+
         if (this.getType() != other.getType()) {
-            throw new UnsupportedOperationException("Échec d'unification : types primitifs différents");
+            // C'est ici que l'erreur doit être lancée !
+            throw new RuntimeException("Échec d'unification : " + this.type + " vs " + other.type);
         }
         return Collections.emptyMap();
     }
