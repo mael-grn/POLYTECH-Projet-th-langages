@@ -161,7 +161,7 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
         int value = Integer.parseInt(ctx.INT().getText());
 
         // Récupération du registre de destination
-        int destRegister = newRegister();
+        int destRegister = getLastUsedRegister();
 
         // instruction de chargement de la valeur immédiate dans le registre
         Instruction loadInstr = new UALi(UALi.Op.ADD, destRegister, destRegister, value);
@@ -439,8 +439,22 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
 
     @Override
     public Program visitAssignment(grammarTCLParser.AssignmentContext ctx) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'visitAssignment'");
+        Program program = new Program();
+
+        // on créé un nouveau registre pour la variable
+        int destRegister = newRegister();
+        Instruction zeroInstr = new UAL(UAL.Op.XOR, destRegister, destRegister, destRegister);
+        program.addInstruction(zeroInstr);
+
+        // on associe ce registre à la variable dans la table des symboles
+        String varName = ctx.children.getFirst().getText();
+        variableRegisters.replace(varName, destRegister);
+
+        // on visite l'expression à assigner
+        Program exprProgram = visitChildren(ctx);
+
+        program.addInstructions(exprProgram);
+        return program;
     }
 
     @Override
@@ -484,8 +498,18 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
 
     @Override
     public Program visitDecl_fct(grammarTCLParser.Decl_fctContext ctx) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'visitDecl_fct'");
+        // on visite le contenu de la fonction
+        Program program = visitChildren(ctx);
+
+        // Cas ou la fonction est vide
+        if (program == null) {
+            program = new Program();
+        }
+
+        // On ajoute le label de la fonction devant la première instruction
+        program.getInstructions().getFirst().setLabel(ctx.getText());
+
+        return program;
     }
 
     @Override
