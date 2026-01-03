@@ -1,8 +1,10 @@
 int main() {
     int x = 42;
     bool y = true;
-    while (y) {
-        y = false;
+    if (y) {
+        x = 20;
+    } else {
+        x = 30;
     }
     return y;
 }

@@ -469,7 +469,16 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
         Program expProgram = visit(ctx.expr());
 
         // Visite du bloc de l'instruction if
-        Program blockProgram = visitChildren(ctx);
+        Program ifBockProgram = visit(ctx.children.get(4));
+
+        // verification de l'existence d'un else
+        boolean hasElse = ctx.children.size() > 5;
+
+        // Visite du bloc de l'instruction else
+        Program elseBlockProgram = new Program();
+        if (hasElse) {
+            elseBlockProgram = visit(ctx.children.get(6));
+        }
 
         // Récupération du registre contenant le résultat de la condition
         int conditionRegister = getResultRegister(expProgram);
@@ -479,10 +488,27 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
         expProgram.addInstruction(new UAL(UAL.Op.XOR, falseRegister, falseRegister, falseRegister));
 
         // Instruction de saut conditionnel (si conditionRegister == 0 (false), sauter le bloc)
-        expProgram.addInstruction(new CondJump(CondJump.Op.JEQU, conditionRegister, falseRegister, "end_if_" + conditionRegister));
+        if (hasElse) {
+            expProgram.addInstruction(new CondJump(CondJump.Op.JEQU, conditionRegister, falseRegister, "else_" + conditionRegister));
+        } else {
+            expProgram.addInstruction(new CondJump(CondJump.Op.JEQU, conditionRegister, falseRegister, "end_if_" + conditionRegister));
+        }
 
-        // Fusion des programmes
-        expProgram.addInstructions(blockProgram);
+        // ajout du bloc if
+        expProgram.addInstructions(ifBockProgram);
+
+        // Si il y a un else, on ajoute une instruction de saut pour sauter le bloc else après le if
+        if (hasElse) {
+            expProgram.addInstruction(new JumpCall(JumpCall.Op.JMP, "end_if_" + conditionRegister));
+
+            // Ajout du label else
+            Instruction elseLabel = new UAL(UAL.Op.XOR, falseRegister, falseRegister, falseRegister);
+            elseLabel.setLabel("else_" + conditionRegister);
+            expProgram.addInstruction(elseLabel);
+
+            // Ajout du bloc else
+            expProgram.addInstructions(elseBlockProgram);
+        }
 
         // Ajout d'un label de fin pour le saut conditionnel
         // Nous utilisons une instruction inutile pour pouvoir y attacher un label
