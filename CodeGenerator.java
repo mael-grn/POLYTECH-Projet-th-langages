@@ -1,3 +1,4 @@
+import java.util.HashMap;
 import java.util.Map;
 
 import Asm.*;
@@ -7,9 +8,20 @@ import Type.UnknownType;
 
 public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements grammarTCLVisitor<Program> {
 
+
+
     private Map<UnknownType, Type> types;
 
+    // Compteur de registre pour suivre leur utilisation
     private int registerCounter = 0;
+
+    // Table de symboles pour associer les variables à leurs registres
+    private Map<String, Integer> variableRegisters = new HashMap<>();
+
+    public CodeGenerator(Map<UnknownType, Type> types) {
+        this.types = types;
+    }
+
 
     /**
      * Génère un nouveau numéro de registre unique.
@@ -17,6 +29,25 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
      */
     private int newRegister() {
         return registerCounter++;
+    }
+
+    /**
+     * Pour récuperer le dernier registre utilisé
+     * @return le numéro du dernier registre utilisé
+     */
+    private int getLastUsedRegister() {
+        return registerCounter - 1;
+    }
+
+    /**
+     * Génère un nouveau registre pour une variable donnée et l'associe dans la table des variables.
+     * @param varName le nom de la variable
+     * @return le numéro du nouveau registre
+     */
+    private int newRegister(String varName) {
+        int reg = newRegister();
+        variableRegisters.put(varName, reg);
+        return reg;
     }
 
     /**
@@ -30,7 +61,7 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
             throw new RuntimeException("Le programme est vide, impossible de récupérer le registre de résultat.");
         }
 
-        Instruction lastInstr = p.getInstructions().get(p.getInstructions().size() - 1);
+        Instruction lastInstr = p.getInstructions().getLast();
 
         if (lastInstr instanceof UAL) {
             return ((UAL) lastInstr).getDest();
@@ -42,25 +73,19 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
         throw new RuntimeException("Type d'instruction non supporté");
     }
 
-    /**
-     * Constructeur
-     *
-     * @param types types de chaque variable du code source
-     */
-    public CodeGenerator(Map<UnknownType, Type> types) {
-        this.types = types;
-    }
-
-    /**
-     * On récupère le registre resultat, on stock sa valeur inversée (xor) dans un nouveau registre
-     * @param ctx the parse tree
-     * @return
-     */
     @Override
     public Program visitNegation(grammarTCLParser.NegationContext ctx) {
+
+        //Visite de l'expression à néguer
         Program program = visit(ctx.expr());
+
+        //Récupération du registre source
         int srcRegister = getResultRegister(program);
+
+        //Création du registre contenant le résultat
         int destRegister = newRegister();
+
+        //Instruction de negation de la valeur (source XOR 1)
         Instruction instruction = new UALi(UALi.Op.XOR, destRegister, srcRegister, 1);
         program.addInstruction(instruction);
         return program;
@@ -68,14 +93,24 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
 
     @Override
     public Program visitComparison(grammarTCLParser.ComparisonContext ctx) {
+
+        // Visite des deux expressions à comparer
         Program left = visit(ctx.expr(0));
         Program right = visit(ctx.expr(1));
+
+        // On fusionne les deux programmes
         Program program = new Program();
         program.addInstructions(left);
         program.addInstructions(right);
+
+        // Récupération des registres sources
         int leftReg = getResultRegister(left);
         int rightReg = getResultRegister(right);
+
+        // Création du registre de destination
         int destReg = newRegister();
+
+        // Instruction de comparaison (soustraction)
         Instruction cmpInstr = new UAL(UAL.Op.SUB, destReg, leftReg, rightReg);
         program.addInstruction(cmpInstr);
         return program;
@@ -83,14 +118,24 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
 
     @Override
     public Program visitOr(grammarTCLParser.OrContext ctx) {
+
+        // Visite des deux expressions à comparer
         Program left = visit(ctx.expr(0));
         Program right = visit(ctx.expr(1));
+
+        // On fusionne les deux programmes
         Program program = new Program();
         program.addInstructions(left);
         program.addInstructions(right);
+
+        // Récupération des registres sources
         int leftReg = getResultRegister(left);
         int rightReg = getResultRegister(right);
+
+        // Création du registre de destination
         int destReg = newRegister();
+
+        // Instruction OR
         Instruction orInstr = new UAL(UAL.Op.OR, destReg, leftReg, rightReg);
         program.addInstruction(orInstr);
         return program;
@@ -98,40 +143,43 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
 
     @Override
     public Program visitOpposite(grammarTCLParser.OppositeContext ctx) {
+
+        // Visite de l'expression à opposer
         Program program = visit(ctx.expr());
+
+        // Récupération du registre source
         int srcRegister = getResultRegister(program);
+
+        // Création du registre de destination
         int destRegister = newRegister();
+
+        // Remise à zéro du registre de destination puis soustraction
         Instruction zeroInstr = new UAL(UAL.Op.SUB, destRegister, srcRegister, srcRegister); //dest = src - src, dest = 0
-        program.addInstruction(zeroInstr);
         Instruction negInstr = new UAL(UAL.Op.SUB, destRegister, destRegister, srcRegister); //dest = dest - src, dest = -src
+
+        program.addInstruction(zeroInstr);
         program.addInstruction(negInstr);
         return program;
     }
 
     @Override
     public Program visitInteger(grammarTCLParser.IntegerContext ctx) {
-        int value = Integer.parseInt(ctx.INT().getText());
-        int destRegister = newRegister();
         Program program = new Program();
-        // Registre à 0
-        Instruction zeroInstr = new UAL(UAL.Op.XOR, destRegister, destRegister, destRegister);
-        program.addInstruction(zeroInstr);
-        // Load de la valeur
+
+        // Récupération de la valeur entière
+        int value = Integer.parseInt(ctx.INT().getText());
+
+        // Récupération du registre de destination
+        int destRegister = getLastUsedRegister();
+
+        // instruction de chargement de la valeur immédiate dans le registre
         Instruction loadInstr = new UALi(UALi.Op.ADD, destRegister, destRegister, value);
         program.addInstruction(loadInstr);
         return program;
     }
 
-    /**
-     * On récupère le registre resultat (on suppose qu'il contient l'indice de la valeur à récuperer en mémoire)
-     * On récupère la valeur correspondante en memoire et on la stock dans un nouveau registre
-     * @param ctx the parse tree
-     * @return
-     */
     @Override
     public Program visitTab_access(grammarTCLParser.Tab_accessContext ctx) {
-        // Quelles sont les expressions de ctx à ce moment de l'execution ?
-
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'visitTab_access'");
     }
@@ -150,13 +198,17 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
 
     @Override
     public Program visitBoolean(grammarTCLParser.BooleanContext ctx) {
-        String boolText = ctx.BOOL().getText();
-        int value = boolText.equals("true") ? 1 : 0;
-        int destRegister = newRegister();
         Program program = new Program();
-        // registre à 0
-        Instruction zeroInstr = new UAL(UAL.Op.XOR, destRegister, destRegister, destRegister);
-        program.addInstruction(zeroInstr);
+
+        // Récupération de la valeur booléenne
+        String boolText = ctx.BOOL().getText();
+
+        // Conversion en entier (1 pour true, 0 pour false)
+        int value = boolText.equals("true") ? 1 : 0;
+
+        // Récupération du registre de destination
+        int destRegister = getLastUsedRegister();
+
         // Load la valeur du booléen (0 ou 1)
         Instruction loadInstr = new UALi(UALi.Op.ADD, destRegister, destRegister, value);
         program.addInstruction(loadInstr);
@@ -165,14 +217,24 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
 
     @Override
     public Program visitAnd(grammarTCLParser.AndContext ctx) {
+
+        // Visite des deux expressions à comparer
         Program left = visit(ctx.expr(0));
         Program right = visit(ctx.expr(1));
+
+        // On fusionne les deux programmes
         Program program = new Program();
         program.addInstructions(left);
         program.addInstructions(right);
+
+        // Récupération des registres sources
         int leftReg = getResultRegister(left);
         int rightReg = getResultRegister(right);
+
+        // Création du registre de destination
         int destReg = newRegister();
+
+        // Instruction AND
         Instruction andInstr = new UAL(UAL.Op.AND, destReg, leftReg, rightReg);
         program.addInstruction(andInstr);
         return program;
@@ -180,8 +242,24 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
 
     @Override
     public Program visitVariable(grammarTCLParser.VariableContext ctx) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'visitVariable'");
+        Program program = new Program();
+
+        // Récupération du nom de la variable
+        String varName = ctx.getText();
+
+        // Récupération du registre associé à la variable
+        Integer srcRegister = variableRegisters.get(varName);
+        if (srcRegister == null) {
+            throw new RuntimeException("Variable non déclarée : " + varName);
+        }
+
+        // Création du registre de destination pour la copie de la valeur
+        int destRegister = newRegister();
+
+        // Instruction de chargement de la valeur de la variable dans le registre de destination
+        Instruction loadInstr = new UALi(UALi.Op.ADD, destRegister, srcRegister, 0);
+        program.addInstruction(loadInstr);
+        return program;
     }
 
     @Override
@@ -214,7 +292,7 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
 
     @Override
     public Program visitBase_type(grammarTCLParser.Base_typeContext ctx) {
-        // Les types de bases ne génèrent pas de code; ils sont gérés dans les déclarations, donc pas de code
+        // Les types de bases ne génèrent pas de code. Ils sont gérés dans les déclarations, donc pas de code
         return new Program();
     }
 
@@ -226,11 +304,23 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
 
     @Override
     public Program visitDeclaration(grammarTCLParser.DeclarationContext ctx) {
-        // On initialise un nouveau registre à zéro
-        Program program = visitChildren(ctx);
-        int destRegister = newRegister();
-        Instruction instruction = new UAL(UAL.Op.XOR, destRegister, destRegister, destRegister);
-        program.addInstruction(instruction);
+        Program program = new Program();
+
+        // Récupération du nom de la variable
+        String varName = ctx.children.get(1).getText();
+
+        // Allocation d'un nouveau registre pour la variable
+        int destRegister = newRegister(varName);
+        // Initialisation de la variable à 0
+        Instruction zeroInstr = new UAL(UAL.Op.XOR, destRegister, destRegister, destRegister);
+        program.addInstruction(zeroInstr);
+
+        // Si une expression d'initialisation est présente
+        if (ctx.expr() != null) {
+            Program exprProgram = visit(ctx.expr());
+            program.addInstructions(exprProgram);
+        }
+
         return program;
     }
 
@@ -248,9 +338,8 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
 
     @Override
     public Program visitBlock(grammarTCLParser.BlockContext ctx) {
-        //Maël
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'visitBlock'");
+        // Rien de spécial à faire pour un bloc, on visite simplement ses enfants
+        return visitChildren(ctx);
     }
 
     @Override
@@ -282,9 +371,8 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
 
     @Override
     public Program visitCore_fct(grammarTCLParser.Core_fctContext ctx) {
-        // Il n'y a rien à faire ?
-        Program program = visitChildren(ctx);
-        return program;
+        // Rien de spécial à faire pour une fonction core, on visite simplement ses enfants
+        return visitChildren(ctx);
     }
 
     @Override
@@ -297,9 +385,26 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
     public Program visitMain(grammarTCLParser.MainContext ctx) {
         // Le main consiste à mettre le label main devant la prochaine instruction
         Program program = visitChildren(ctx);
-        program.getInstructions().get(0).setLabel("main");
+        // Cas ou il n'y a aucune instruction dans le main
+        if (program == null) {
+            return new Program();
+        }
+        program.getInstructions().getFirst().setLabel("main");
         return program;
     }
 
+    @Override
+    protected Program defaultResult() {
+        // Par défaut, on retourne un programme vide au lieu de null
+        return new Program();
+    }
 
+    @Override
+    protected Program aggregateResult(Program aggregate, Program nextResult) {
+        // Cette méthode fusionne les résultats des enfants
+        if (nextResult != null) {
+            aggregate.addInstructions(nextResult);
+        }
+        return aggregate;
+    }
 }
