@@ -1,3 +1,4 @@
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -11,12 +12,9 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
 
 
     private Map<UnknownType, Type> types;
-
-    // Compteur de registre pour suivre leur utilisation
-    private int registerCounter = 0;
-
-    // Table de symboles pour associer les variables à leurs registres
-    private Map<String, Integer> variableRegisters = new HashMap<>();
+    private int heapPointer = 1000;
+    private int registerCounter = 0; // Compteur de registre pour suivre leur utilisation
+    private Map<String, Integer> variableRegisters = new HashMap<>(); // Table de symboles pour associer les variables à leurs registres
 
     public CodeGenerator(Map<UnknownType, Type> types) {
         this.types = types;
@@ -318,9 +316,40 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
 
     @Override
     public Program visitTab_initialization(grammarTCLParser.Tab_initializationContext ctx) {
-        //Maël
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'visitTab_initialization'");
+        Program program = new Program();
+
+        // Récupération des valeurs à insérer dans le tableau
+        // Chaque entrée du tableau est le registre contenant la valeur de l'expression correspondante
+        ArrayList<Integer> values = new ArrayList<>();
+        for (grammarTCLParser.ExprContext exprCtx : ctx.expr()) {
+            Program exprProgram = visit(exprCtx);
+            program.addInstructions(exprProgram);
+            int valueReg = getResultRegister(exprProgram);
+            values.add(valueReg);
+        }
+
+        // Stockage de la valeur actuelle du pointeur de heap, correspondant au début du tableau
+        int tabStartReg = newRegister();
+        program.addInstruction(new UAL(UAL.Op.XOR, tabStartReg, tabStartReg, tabStartReg)); // Mise à zéro du registre
+        program.addInstruction(new UALi(UALi.Op.ADD, tabStartReg, tabStartReg, heapPointer)); // Chargement de l'adresse du début du tableau
+
+        // Registre contenant l'adresse courante pour le stockage
+        int addrReg = newRegister();
+        program.addInstruction(new UAL(UAL.Op.XOR, addrReg, addrReg, addrReg)); // Mise à zéro du registre
+        program.addInstruction(new UALi(UALi.Op.ADD, addrReg, addrReg, tabStartReg)); // Chargement de l'adresse du début du tableau
+
+        for (int i = 0; i < values.size(); i++) {
+            int valueReg = values.get(i);
+
+            // Stockage de la valeur dans le tableau
+            program.addInstruction(new Mem(Mem.Op.ST, valueReg, addrReg));
+
+            // Calcul de l'adresse où stocker la prochaine valeur
+            heapPointer++;
+            program.addInstruction(new UALi(UALi.Op.ADD, addrReg, addrReg, 1));
+        }
+
+        return program;
     }
 
     @Override
