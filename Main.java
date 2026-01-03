@@ -21,8 +21,8 @@ public class Main {
 			grammarTCLParser.MainContext tree = parser.main();
 
 			CodeGenerator codegen = new CodeGenerator(new HashMap<>());
+            System.out.println(tree.toStringTree(parser));
 			Program prog = codegen.visit(tree);
-
 			PrintWriter writer = new PrintWriter("prog.asm");
 			writer.print(prog.toString());
 			writer.close();

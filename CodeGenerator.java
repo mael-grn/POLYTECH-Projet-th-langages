@@ -14,6 +14,7 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
 
 
     private Map<UnknownType, Type> types;
+    private int resultRegister;
     private int heapPointer = 1000;
     private int registerCounter = 0; // Compteur de registre pour suivre leur utilisation
     private Map<String, Integer> variableRegisters = new HashMap<>(); // Table de symboles pour associer les variables à leurs registres
@@ -21,7 +22,7 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
     public CodeGenerator(Map<UnknownType, Type> types) {
         this.types = types;
     }
-
+    private final int returnRegister = 0;
 
     /**
      * Génère un nouveau numéro de registre unique.
@@ -49,7 +50,9 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
         variableRegisters.put(varName, reg);
         return reg;
     }
-
+    public int getResultRegister() {
+        return resultRegister;
+    }
     /**
      * Pour récuperer le dernier registre utilisé dans la dernière instruction.
      * Throw si la dernière instruction n'as pas utilisé de registre
@@ -71,6 +74,9 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
             return ((Mem) lastInstr).getDest();
         }
         throw new RuntimeException("Type d'instruction non supporté");
+    }
+    public void setResultRegister(int r) {
+        resultRegister = r;
     }
 
     @Override
@@ -159,17 +165,20 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
     public Program visitInteger(grammarTCLParser.IntegerContext ctx) {
         Program program = new Program();
 
-        // Récupération de la valeur entière
         int value = Integer.parseInt(ctx.INT().getText());
 
-        // Récupération du registre de destination
-        int destRegister = getLastUsedRegister();
+        // Allouer un registre pour cette constante
+        int destRegister = newRegister();
 
-        // instruction de chargement de la valeur immédiate dans le registre
-        Instruction loadInstr = new UALi(UALi.Op.ADD, destRegister, destRegister, value);
-        program.addInstruction(loadInstr);
+        // dest = 0
+        program.addInstruction(new UAL(UAL.Op.XOR, destRegister, destRegister, destRegister));
+
+        // dest = value
+        program.addInstruction(new UALi(UALi.Op.ADD, destRegister, destRegister, value));
+
         return program;
     }
+
 
     @Override
     public Program visitTab_access(grammarTCLParser.Tab_accessContext ctx) {
@@ -207,26 +216,43 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
 
     @Override
     public Program visitCall(grammarTCLParser.CallContext ctx) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'visitCall'");
+        Program program = new Program();
+        String fctName = ctx.children.get(0).getText();
+        for (int i = 0; i < ctx.expr().size(); i++) {
+            Program argProg = visit(ctx.expr(i));
+            program.addInstructions(argProg);
+
+            int argResReg = getResultRegister(argProg);
+
+            int argReg = i + 1; // R1, R2, ...
+            // MOV argReg <- argResReg (MOV via ADD imm 0)
+            program.addInstruction(new UALi(UALi.Op.ADD, argReg, argResReg, 0));
+        }
+        program.addInstruction(new Call(fctName));
+        int dest = newRegister();
+        program.addInstruction(new UALi(UALi.Op.ADD, dest, 0, 0)); // dest = R0
+
+        return program;
     }
 
     @Override
     public Program visitBoolean(grammarTCLParser.BooleanContext ctx) {
         Program program = new Program();
 
-        // Récupération de la valeur booléenne
-        String boolText = ctx.BOOL().getText();
+        // "true" -> 1, "false" -> 0
+        int value = ctx.BOOL().getText().equals("true") ? 1 : 0;
 
-        // Conversion en entier (1 pour true, 0 pour false)
-        int value = boolText.equals("true") ? 1 : 0;
+        // Allouer un registre pour cette constante
+        int destRegister = newRegister();
 
-        // Récupération du registre de destination
-        int destRegister = getLastUsedRegister();
+        // dest = 0
+        program.addInstruction(new UAL(UAL.Op.XOR, destRegister, destRegister, destRegister));
 
-        // Load la valeur du booléen (0 ou 1)
-        Instruction loadInstr = new UALi(UALi.Op.ADD, destRegister, destRegister, value);
-        program.addInstruction(loadInstr);
+        // dest = value (si value == 1, on ajoute 1)
+        if (value != 0) {
+            program.addInstruction(new UALi(UALi.Op.ADD, destRegister, destRegister, 1));
+        }
+
         return program;
     }
 
@@ -619,43 +645,79 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
 
     @Override
     public Program visitReturn(grammarTCLParser.ReturnContext ctx) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'visitReturn'");
+        Program program = visit(ctx.expr());
+        int resultReg = getResultRegister(program);
+        int resReg = getResultRegister(program);
+        program.addInstruction(new UALi(UALi.Op.ADD, returnRegister, resReg, 0));
+        program.addInstruction(new Ret());
+        System.out.println("visit return");
+        return program;
     }
 
     @Override
     public Program visitCore_fct(grammarTCLParser.Core_fctContext ctx) {
-        // Rien de spécial à faire pour une fonction core, on visite simplement ses enfants
-        return visitChildren(ctx);
+        Program p = new Program();
+
+        // instructions normales
+        for (grammarTCLParser.InstrContext ic : ctx.instr()) {
+            Program ip = visit(ic);
+            if (ip != null) {
+                p.addInstructions(ip);
+            }
+        }
+
+        // s'il y a un return
+        if (ctx.RETURN() != null) {
+            Program ep = visit(ctx.expr());   // calcule x
+            p.addInstructions(ep);
+
+            int res = getResultRegister(ep);
+
+            // return = convention d'appel
+            if (res != returnRegister) {
+                p.addInstruction(new UALi(UALi.Op.ADD, returnRegister, res, 0));
+            }
+            p.addInstruction(new Ret());
+        }
+
+        return p;
     }
 
     @Override
     public Program visitDecl_fct(grammarTCLParser.Decl_fctContext ctx) {
-        // on visite le contenu de la fonction
-        Program program = visitChildren(ctx);
+        Program p = visit(ctx.core_fct());
 
-        // Cas ou la fonction est vide
-        if (program == null) {
-            program = new Program();
+        String name = ctx.VAR(0).getText(); // nom de la fonction
+        if (p != null && !p.getInstructions().isEmpty()) {
+            p.getInstructions().getFirst().setLabel(name);
         }
-
-        // On ajoute le label de la fonction devant la première instruction
-        program.getInstructions().getFirst().setLabel(ctx.getText());
-
-        return program;
+        return p;
     }
+
 
     @Override
     public Program visitMain(grammarTCLParser.MainContext ctx) {
-        // Le main consiste à mettre le label main devant la prochaine instruction
-        Program program = visitChildren(ctx);
-        // Cas ou il n'y a aucune instruction dans le main
-        if (program == null) {
-            return new Program();
+        Program p = new Program();
+
+        // 1) Générer toutes les fonctions déclarées avant main
+        for (grammarTCLParser.Decl_fctContext f : ctx.decl_fct()) {
+            Program fp = visit(f);
+            if (fp != null) p.addInstructions(fp);
         }
-        program.getInstructions().getFirst().setLabel("main");
-        return program;
+
+        // 2) Générer le corps de main
+        Program mainProg = visit(ctx.core_fct());
+        if (mainProg != null) {
+            // Mettre le label "main" sur la 1ère instruction du corps de main
+            if (!mainProg.getInstructions().isEmpty()) {
+                mainProg.getInstructions().getFirst().setLabel("main");
+            }
+            p.addInstructions(mainProg);
+        }
+
+        return p;
     }
+
 
     @Override
     protected Program defaultResult() {
