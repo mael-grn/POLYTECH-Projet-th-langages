@@ -1,11 +1,13 @@
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import Asm.*;
 import org.antlr.v4.runtime.tree.AbstractParseTreeVisitor;
 import Type.Type;
 import Type.UnknownType;
+import org.antlr.v4.runtime.tree.ParseTree;
 
 public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements grammarTCLVisitor<Program> {
 
@@ -556,9 +558,63 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
 
     @Override
     public Program visitFor(grammarTCLParser.ForContext ctx) {
-        //Maël
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'visitFor'");
+        // on ne peut pas visiter l'expression de ctx, car elle ne gère pas l'initialisation de la variable dans la condition de la boucle.
+        // on va donc faire les choses manuellement.
+        // dans les enfants de ctx, on a :
+        // 0 : 'for'
+        // 1 : '('
+        // 2 : initialisation (declaration ou assignment)
+        // 3 : ','
+        // 4 : condition (expression)
+        // 5 : ','
+        // 6 : incrémentation (assignment)
+        // 7 : ')'
+        // 8 : bloc
+
+        Program program = new Program();
+
+        // Visite de l'expression conditionnelle
+        Program initFormProgram = visit(ctx.children.get(2));
+
+        // Visite de la condition
+        Program expProgram = visit(ctx.children.get(4));
+
+        // Récupération du registre contenant le résultat de la condition
+        int conditionRegister = getResultRegister(expProgram);
+
+        // Visite de l'instruction d'incrémentation
+        Program incrProgram = visit(ctx.children.get(6));
+
+        // Visite du bloc de l'instruction for
+        Program blockProgram = visit(ctx.children.get(8));
+
+        // Fusion des programmes
+        program.addInstructions(initFormProgram);
+        program.addInstructions(expProgram);
+
+        // Stockage de la valeur 0 (false) dans un registre temporaire
+        int falseRegister = newRegister();
+        expProgram.addInstruction(new UAL(UAL.Op.XOR, falseRegister, falseRegister, falseRegister));
+
+        // Instruction de saut conditionnel (si conditionRegister == 0 (false), sauter le bloc)
+        Instruction condInstr = new CondJump(CondJump.Op.JEQU, conditionRegister, falseRegister, "end_for_" + conditionRegister);
+        condInstr.setLabel("start_for_" + conditionRegister);
+        program.addInstruction(condInstr);
+
+        // Fusion des programmes
+        program.addInstructions(blockProgram);
+        program.addInstructions(incrProgram);
+
+        // Ajout de l'instruction de retour au début de la condition
+        program.addInstruction(new JumpCall(JumpCall.Op.JMP, "start_for_" + conditionRegister));
+
+        // Ajout d'un label de fin pour le saut conditionnel
+        // Nous utilisons une instruction inutile pour pouvoir y attacher un label
+        Instruction endIfLabel = new UAL(UAL.Op.XOR, falseRegister, falseRegister, falseRegister);
+        endIfLabel.setLabel("end_for_" + conditionRegister);
+        program.addInstruction(endIfLabel);
+
+        return program;
     }
 
     @Override
