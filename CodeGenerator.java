@@ -170,7 +170,7 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
         int value = Integer.parseInt(ctx.INT().getText());
 
         // Récupération du registre de destination
-        int destRegister = getLastUsedRegister();
+        int destRegister = newRegister();
 
         // instruction de chargement de la valeur immédiate dans le registre
         Instruction loadInstr = new UALi(UALi.Op.ADD, destRegister, destRegister, value);
@@ -264,9 +264,29 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
 
     @Override
     public Program visitMultiplication(grammarTCLParser.MultiplicationContext ctx) {
-        //Maël
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'visitMultiplication'");
+
+        // Récupération du registre de destination
+        int destReg = getLastUsedRegister();
+
+        // Visite des deux expressions à multiplier
+        Program left = visit(ctx.expr(0));
+        Program right = visit(ctx.expr(1));
+
+        // On fusionne les deux programmes
+        Program program = new Program();
+        program.addInstructions(left);
+        program.addInstructions(right);
+
+        // Récupération des registres sources
+        int leftReg = getResultRegister(left);
+        int rightReg = getResultRegister(right);
+
+
+
+        // Instruction OR
+        Instruction orInstr = new UAL(UAL.Op.MUL, destReg, leftReg, rightReg);
+        program.addInstruction(orInstr);
+        return program;
     }
 
     @Override
