@@ -41,10 +41,10 @@ public class Main {
                 }
             }
 
-            System.out.println("\n✓ Analyse terminée avec succès.");
+            System.out.println("\nAnalyse terminée avec succès.");
 
         } catch (Exception e) {
-            System.err.println("\n✗ ERREUR DE TYPAGE : " + e.getMessage());
+            System.err.println("\nERREUR DE TYPAGE : " + e.getMessage());
             // Optionnel : e.printStackTrace(); // Pour le debug précis
         }
     }
@@ -71,7 +71,7 @@ public class Main {
             return s.toString();
         }
         if (t instanceof UnknownType) {
-            return "auto (non résolu : " + t.toString() + ")";
+            return "auto"; //(non résolu : " + t.toString() + ")
         }
         return t.toString();
     }

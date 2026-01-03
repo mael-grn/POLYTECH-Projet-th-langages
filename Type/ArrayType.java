@@ -60,7 +60,7 @@ public class ArrayType extends Type{
     @Override
     public String toString() {
         // Done
-        return "Array(" + this.getTabType().toString() + ")";
+        return this.getTabType().toString() + "[]";
     }
 
     
