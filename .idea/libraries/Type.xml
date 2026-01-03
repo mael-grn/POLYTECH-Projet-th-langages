@@ -4,6 +4,7 @@
       <root url="jar://$PROJECT_DIR$/Type/package-search-index.zip!/" />
       <root url="jar://$PROJECT_DIR$/Type/type-search-index.zip!/" />
       <root url="jar://$PROJECT_DIR$/Type/member-search-index.zip!/" />
+      <root url="jar://$PROJECT_DIR$/../../TLanguage/antlr-4.13.2-complete.jar!/" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />

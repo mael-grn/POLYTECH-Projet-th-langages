@@ -1,5 +1,4 @@
 package Type;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 
@@ -25,6 +24,10 @@ public  class PrimitiveType extends Type {
     @Override
     public Map<UnknownType, Type> unify(Type t) {
         // Done
+        if (t instanceof UnknownType) {
+            // UnknownType unify avec PrimitiveType
+            return t.unify(this);  // Déléguer à UnknownType.unify()
+        }
         if (!(t instanceof PrimitiveType other)) {
             throw new UnsupportedOperationException("Cannot unify Primitive type with non-primitive type");
         }

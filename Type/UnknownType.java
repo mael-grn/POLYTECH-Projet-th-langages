@@ -73,45 +73,60 @@ public class UnknownType extends Type {
 
     @Override
     public Map<UnknownType, Type> unify(Type t) {
-        // Done
-        Map<UnknownType, Type> sub = new HashMap<>();
+        // TODO Auto-generated method stub
+        // DONE
+        Map<UnknownType, Type> substitution = new HashMap<>();
+
+        // Si c'est le même type (même variable), pas de substitution nécessaire
         if (this.equals(t)) {
-            return sub;
+            return substitution;
         }
+
+        // Occurs check : éviter les types récursifs comme α = Array(α)
         if (t.contains(this)) {
-            throw new UnsupportedOperationException("type récursif");
+            throw new RuntimeException("Type récursif détecté: " + this + " apparaît dans " + t);
         }
-        sub.put(this, t);
-        return sub;
+
+        // Unification : cette variable de type devient égale à t
+        substitution.put(this, t);
+        return substitution;
     }
 
     @Override
     public Type substitute(UnknownType v, Type t) {
-        //Done
-        if (this.equals(v)) return t;
+        // TODO Auto-generated method stub
+        // DONE
+        // Si c'est la variable qu'on veut remplacer
+        if (this.equals(v)) {
+            return t;
+        }
+        // Sinon, on ne change rien
         return this;
     }
 
     @Override
     public boolean contains(UnknownType v) {
-        // Done
+        // TODO Auto-generated method stub
+        // DONE
+        // Un UnknownType contient v s'il est égal à v
         return this.equals(v);
     }
 
     @Override
     public boolean equals(Object t) {
-        // Done
+        // TODO Auto-generated method stub
+        // DONE
         if (this == t) return true;
-        if (!(t instanceof UnknownType other)) return false;
-        return this.varName.equals(other.varName);
+        if (!(t instanceof UnknownType)) return false;
+        UnknownType other = (UnknownType) t;
+        return this.varName.equals(other.varName) && this.varIndex == other.varIndex;
     }
 
     @Override
     public String toString() {
-        // Done
-        return "?"+varName;
+        // TODO Auto-generated method stub
+        // DONE
+        return varName + varIndex;
     }
-
-    
 
 }
