@@ -3,5 +3,6 @@ int main() {
     bool y = true;
     int z = x * 10;
     int[] t = {1, 2, 3};
+    int v = t[0];
     return x;
 }

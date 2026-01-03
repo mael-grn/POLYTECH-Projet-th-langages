@@ -171,8 +171,30 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
 
     @Override
     public Program visitTab_access(grammarTCLParser.Tab_accessContext ctx) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'visitTab_access'");
+        Program program = new Program();
+
+        // Récupération du registre de début du tableau
+        int tabStartRegister = variableRegisters.get(ctx.expr(0).getText());
+
+        // Récupération de l'index d'accès
+        Program indexProgram = visit(ctx.expr(1));
+        program.addInstructions(indexProgram);
+
+        // Récupération du registre contenant l'index calculé precedemment
+        int indexRegister = getResultRegister(indexProgram);
+
+        // Stockage de l'index de l'element en memoire (adresse du tableau + index)
+        int addrRegister = newRegister();
+        program.addInstruction(new UAL(UAL.Op.ADD, addrRegister, indexRegister, tabStartRegister));
+
+        // Registre de destination pour la valeur lue
+        int destRegister = newRegister();
+
+        // Instruction de chargement de la valeur depuis la mémoire
+        Instruction loadInstr = new Mem(Mem.Op.LD, destRegister, addrRegister);
+        program.addInstruction(loadInstr);
+
+        return program;
     }
 
     @Override
@@ -318,6 +340,10 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
     public Program visitTab_initialization(grammarTCLParser.Tab_initializationContext ctx) {
         Program program = new Program();
 
+        // Stockage de la valeur actuelle du pointeur de heap, correspondant au début du tableau
+        int tabStartReg = getLastUsedRegister();
+        program.addInstruction(new UALi(UALi.Op.ADD, tabStartReg, tabStartReg, heapPointer)); // Chargement de l'adresse du début du tableau
+
         // Récupération des valeurs à insérer dans le tableau
         // Chaque entrée du tableau est le registre contenant la valeur de l'expression correspondante
         ArrayList<Integer> values = new ArrayList<>();
@@ -327,11 +353,6 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
             int valueReg = getResultRegister(exprProgram);
             values.add(valueReg);
         }
-
-        // Stockage de la valeur actuelle du pointeur de heap, correspondant au début du tableau
-        int tabStartReg = newRegister();
-        program.addInstruction(new UAL(UAL.Op.XOR, tabStartReg, tabStartReg, tabStartReg)); // Mise à zéro du registre
-        program.addInstruction(new UALi(UALi.Op.ADD, tabStartReg, tabStartReg, heapPointer)); // Chargement de l'adresse du début du tableau
 
         // Registre contenant l'adresse courante pour le stockage
         int addrReg = newRegister();
