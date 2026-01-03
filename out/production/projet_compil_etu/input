@@ -1,7 +1,0 @@
-int main() {
-    auto ligne1 = {1, 2};
-    auto ligne2 = {3, 4};
-    auto matrice = {ligne1, ligne2};
-    auto valeur = matrice[0][1];
-    return 0;
-}
