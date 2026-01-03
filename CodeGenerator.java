@@ -75,15 +75,13 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
 
     @Override
     public Program visitNegation(grammarTCLParser.NegationContext ctx) {
+        int destRegister = getLastUsedRegister();
 
         //Visite de l'expression à néguer
         Program program = visit(ctx.expr());
 
         //Récupération du registre source
         int srcRegister = getResultRegister(program);
-
-        //Création du registre contenant le résultat
-        int destRegister = newRegister();
 
         //Instruction de negation de la valeur (source XOR 1)
         Instruction instruction = new UALi(UALi.Op.XOR, destRegister, srcRegister, 1);
@@ -93,6 +91,7 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
 
     @Override
     public Program visitComparison(grammarTCLParser.ComparisonContext ctx) {
+        int destReg = getLastUsedRegister();
 
         // Visite des deux expressions à comparer
         Program left = visit(ctx.expr(0));
@@ -106,9 +105,6 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
         // Récupération des registres sources
         int leftReg = getResultRegister(left);
         int rightReg = getResultRegister(right);
-
-        // Création du registre de destination
-        int destReg = newRegister();
 
         // Instruction de comparaison (soustraction)
         Instruction cmpInstr = new UAL(UAL.Op.SUB, destReg, leftReg, rightReg);
@@ -118,6 +114,7 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
 
     @Override
     public Program visitOr(grammarTCLParser.OrContext ctx) {
+        int destReg = getLastUsedRegister();
 
         // Visite des deux expressions à comparer
         Program left = visit(ctx.expr(0));
@@ -131,9 +128,6 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
         // Récupération des registres sources
         int leftReg = getResultRegister(left);
         int rightReg = getResultRegister(right);
-
-        // Création du registre de destination
-        int destReg = newRegister();
 
         // Instruction OR
         Instruction orInstr = new UAL(UAL.Op.OR, destReg, leftReg, rightReg);
@@ -144,14 +138,13 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
     @Override
     public Program visitOpposite(grammarTCLParser.OppositeContext ctx) {
 
+        int destRegister = getLastUsedRegister();
+
         // Visite de l'expression à opposer
         Program program = visit(ctx.expr());
 
         // Récupération du registre source
         int srcRegister = getResultRegister(program);
-
-        // Création du registre de destination
-        int destRegister = newRegister();
 
         // Remise à zéro du registre de destination puis soustraction
         Instruction zeroInstr = new UAL(UAL.Op.SUB, destRegister, srcRegister, srcRegister); //dest = src - src, dest = 0
@@ -218,6 +211,8 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
     @Override
     public Program visitAnd(grammarTCLParser.AndContext ctx) {
 
+        int destReg = getLastUsedRegister();
+
         // Visite des deux expressions à comparer
         Program left = visit(ctx.expr(0));
         Program right = visit(ctx.expr(1));
@@ -230,9 +225,6 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
         // Récupération des registres sources
         int leftReg = getResultRegister(left);
         int rightReg = getResultRegister(right);
-
-        // Création du registre de destination
-        int destReg = newRegister();
 
         // Instruction AND
         Instruction andInstr = new UAL(UAL.Op.AND, destReg, leftReg, rightReg);
@@ -289,9 +281,39 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
 
     @Override
     public Program visitEquality(grammarTCLParser.EqualityContext ctx) {
-        //Maël
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'visitEquality'");
+        // registre destiation qui contiendra le résultat (boolean) de la comparaison
+        int destReg = getLastUsedRegister();
+
+        // Visite des deux expressions à comparer
+        Program left = visit(ctx.expr(0));
+        Program right = visit(ctx.expr(1));
+
+        // On fusionne les deux programmes
+        Program program = new Program();
+        program.addInstructions(left);
+        program.addInstructions(right);
+
+        // Récupération des registres sources
+        int leftReg = getResultRegister(left);
+        int rightReg = getResultRegister(right);
+
+        // Instruction condition
+        Instruction condInstr = new CondJump(CondJump.Op.JNEQ, rightReg, leftReg, "end_equal_" + leftReg + "_" + rightReg);
+
+        // Instruction pour mettre 0 (false) dans le registre de destination
+        Instruction setTrue = new UALi(UALi.Op.ADD, destReg, destReg, 1); // destReg = 1 (true)
+
+        // On a un problème à cet endroit : on doit mettre un label sur la prochaine instruction, sauf que nous n'y avons pas accès.
+        // Nous allons donc ajouter une instruction qui ne fait rien, qui ne sert à rien, mais qui nous permettra de mettre un label dessus.
+
+        int tmpReg = newRegister(); // registre temporaire pour l'instruction inutile
+        Instruction nopInstr = new UAL(UAL.Op.XOR, tmpReg, tmpReg, tmpReg);
+        nopInstr.setLabel("end_equal_" + leftReg + "_" + rightReg);
+
+        program.addInstruction(condInstr);
+        program.addInstruction(setTrue);
+        program.addInstruction(nopInstr);
+        return program;
     }
 
     @Override
