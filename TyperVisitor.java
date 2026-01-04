@@ -218,8 +218,11 @@ public class TyperVisitor extends AbstractParseTreeVisitor<Type> implements gram
         Type decType = ctx.type().accept(this);
         String varName = ctx.VAR().getText();
 
-        symbolTable.put(varName, decType);
 
+        if (symbolTable.containsKey(varName)) {
+            throw new RuntimeException("ERREUR : La variable "+ varName +" déjà definis");
+        }
+        symbolTable.put(varName, decType);
         if (ctx.ASSIGN() !=null){
             Type initType = ctx.expr().accept(this);
             this.updateSubstitutions(decType.unify(initType));
@@ -259,7 +262,6 @@ public class TyperVisitor extends AbstractParseTreeVisitor<Type> implements gram
             this.updateSubstitutions(curType.unify(new ArrayType(contentVar)));
             curType = applyAll(contentVar);
         }
-        List<grammarTCLParser.ExprContext> allExprs = ctx.expr();
         Type rightSideType = ctx.expr(ctx.expr().size() -1).accept(this);
         this.updateSubstitutions(curType.unify(rightSideType));
         return applyAll(curType);
@@ -311,12 +313,9 @@ public class TyperVisitor extends AbstractParseTreeVisitor<Type> implements gram
             Type condType = ctx.expr().accept(this);
             this.updateSubstitutions(condType.unify(new PrimitiveType(Type.Base.BOOL)));
         }
-
         ctx.instr(1).accept(this);
 
-        if (ctx.instr().size() > 2) {
-            ctx.instr(2).accept(this);
-        }
+        ctx.instr(2).accept(this);
 
         return null;
     }

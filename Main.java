@@ -37,7 +37,7 @@ public class Main {
             System.out.println("\nAnalyse terminée avec succès.");
 
         } catch (Exception e) {
-            System.err.println("\nERREUR DE TYPAGE : " + e.getMessage());
+            System.err.println("\n" + e.getMessage());
         }
     }
 

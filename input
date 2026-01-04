@@ -34,7 +34,7 @@ int main(){
     bool[] j={true};
     int[] x = f(0);
     bool[] y = f(true);
-    int[][] g = f({1});
+
     int p = h({1});
     if (x == {0}){
         return 1;
