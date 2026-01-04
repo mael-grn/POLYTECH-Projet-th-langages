@@ -282,10 +282,10 @@ public class TyperVisitor extends AbstractParseTreeVisitor<Type> implements gram
         Type condType = ctx.expr().accept(this);
         this.updateSubstitutions(condType.unify(new PrimitiveType(Type.Base.BOOL)));
 
-        // Visiter le bloc 'then'
+        // visiter le bloc 'then'
         ctx.instr(0).accept(this);
 
-        // Visiter le bloc 'else' s'il existe
+        // visiter le bloc 'else' s'il existe
         if (ctx.instr().size() > 1) {
             ctx.instr(1).accept(this);
         }
@@ -324,11 +324,9 @@ public class TyperVisitor extends AbstractParseTreeVisitor<Type> implements gram
     public Type visitReturn(grammarTCLParser.ReturnContext ctx) {
         if (currentFunctionReturnType == null) return null;
 
-        // 1. Récupérer le type de l'expression (ex: INT ou BOOL)
         Type actRetType = ctx.expr().accept(this);
 
-        // 2. Unifier avec le type de retour attendu de la fonction [cite: 65-71]
-        // On utilise applyAll pour être sûr de comparer avec la contrainte déjà établie
+        // on utilise applyAll pour être sûr de comparer avec la contrainte déjà établie
         this.updateSubstitutions(applyAll(currentFunctionReturnType).unify(actRetType));
 
         return applyAll(actRetType);
@@ -340,7 +338,7 @@ public class TyperVisitor extends AbstractParseTreeVisitor<Type> implements gram
             symbolTable.put(fctName, new UnknownType());
         }
 
-        // On récupère le type actuel de la fonction
+        // on récupère le type actuel de la fonction
         Type fctType = applyAll(symbolTable.get(fctName));
 
         if (fctType instanceof FunctionType originalFct) {
@@ -357,14 +355,14 @@ public class TyperVisitor extends AbstractParseTreeVisitor<Type> implements gram
                 this.updateSubstitutions(expectedArg.unify(providedArg));
             }
 
-            // On retourne le type de retour "frais"
+
             return applyAll(callSignature.getReturnType());
         }
         return applyAll(fctType);
     }
 
-    // Ajoute cette méthode utilitaire à la fin de ton TyperVisitor.java
-// Elle permet de copier un type en remplaçant les inconnues par des nouvelles
+
+    // elle permet de copier un type en remplaçant les inconnues par des nouvelles
     private Type instantiate(Type t, Map<UnknownType, Type> freshMap) {
         if (t instanceof UnknownType ut) {
             return freshMap.computeIfAbsent(ut, k -> new UnknownType());
@@ -380,17 +378,17 @@ public class TyperVisitor extends AbstractParseTreeVisitor<Type> implements gram
             }
             return new FunctionType(resRet, resArgs);
         }
-        return t; // PrimitiveType ne change pas
+        return t; //primitiveType ne change pas
     }
 
     @Override
     public Type visitCore_fct(grammarTCLParser.Core_fctContext ctx) {
-        // 1. Visiter toutes les instructions du corps
+        // visiter toutes les instructions du corps
         for (grammarTCLParser.InstrContext instrCtx : ctx.instr()) {
             instrCtx.accept(this);
         }
 
-        // 2. Vérifier si l'expression de return final existe pour éviter le crash
+        // vérifier si l'expression de return final existe pour éviter le crash
         if (ctx.expr() != null) {
             Type actRetType = ctx.expr().accept(this);
             if (this.currentFunctionReturnType != null) {
@@ -406,7 +404,7 @@ public class TyperVisitor extends AbstractParseTreeVisitor<Type> implements gram
     public Type visitDecl_fct(grammarTCLParser.Decl_fctContext ctx) {
         String fctName = ctx.VAR(0).getText();
 
-        // 1. Sauvegarde de la table globale (on cache les variables du main)
+        // sauvegarde de la table globale
         Map<String, Type> globalScope = new HashMap<>(symbolTable);
 
         Type returnType = ctx.type(0).accept(this);
@@ -414,7 +412,7 @@ public class TyperVisitor extends AbstractParseTreeVisitor<Type> implements gram
         for (int i = 1; i < ctx.type().size(); i++) {
             Type argType = ctx.type(i).accept(this);
             argsTypes.add(argType);
-            // On ajoute l'argument localement
+            // on ajoute l'argument localement
             symbolTable.put(ctx.VAR(i).getText(), argType);
         }
 
@@ -425,8 +423,7 @@ public class TyperVisitor extends AbstractParseTreeVisitor<Type> implements gram
         ctx.core_fct().accept(this);
         this.currentFunctionReturnType = null;
 
-        // 2. RESTAURATION : On efface les variables locales (x, etc.)
-        // mais on garde la signature de la fonction pour le futur
+        // on efface les variables locales mais on garde la signature de la fonction pour le futur
         Type finalSig = applyAll(fctSignature);
         symbolTable = globalScope;
         symbolTable.put(fctName, finalSig);

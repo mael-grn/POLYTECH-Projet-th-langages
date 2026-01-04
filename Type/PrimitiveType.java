@@ -26,12 +26,11 @@ public  class PrimitiveType extends Type {
         if (t instanceof UnknownType) return t.unify(this);
 
         if (!(t instanceof PrimitiveType other)) {
-            throw new RuntimeException("Incompatible types: Primitive vs " + t);
+            throw new RuntimeException("ERREUR : Incompatible types: Primitive vs " + t);
         }
 
         if (this.getType() != other.getType()) {
-            // C'est ici que l'erreur doit être lancée
-            throw new RuntimeException("Échec d'unification : " + this.type + " vs " + other.type);
+            throw new RuntimeException("ERREUR : Échec d'unification : " + this.type + " vs " + other.type);
         }
         return Collections.emptyMap();
     }

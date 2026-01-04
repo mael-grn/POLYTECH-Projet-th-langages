@@ -76,17 +76,16 @@ public class UnknownType extends Type {
         // DONE
         Map<UnknownType, Type> substitution = new HashMap<>();
 
-        // Si c'est le même type (même variable), pas de substitution nécessaire
+        // si c'est le même type pas de substitution nécessaire
         if (this.equals(t)) {
             return substitution;
         }
 
-        // éviter les types récursifs comme α = Array(α)
+        // éviter les types récursifs comme A = TAB[A]
         if (t.contains(this)) {
-            throw new RuntimeException("Type récursif détecté: " + this + " apparaît dans " + t);
+            throw new RuntimeException("ERREUR : Type récursif détecté: " + this + " apparaît dans " + t);
         }
 
-        // Unification : cette variable de type devient égale à t
         substitution.put(this, t);
         return substitution;
     }
@@ -94,11 +93,11 @@ public class UnknownType extends Type {
     @Override
     public Type substitute(UnknownType v, Type t) {
         // DONE
-        // Si c'est la variable qu'on veut remplacer
+        // si c'est la variable qu'on veut remplacer
         if (this.equals(v)) {
             return t;
         }
-        // Sinon, on ne change rien
+        // sinon, on ne change rien
         return this;
     }
 

@@ -46,21 +46,21 @@ public class FunctionType extends Type {
     @Override
     public Map<UnknownType, Type> unify(Type t) {
         if (!(t instanceof FunctionType other)) {
-            throw new UnsupportedOperationException("Impossible d'unifier une fonction avec " + t);
+            throw new UnsupportedOperationException("ERREUR : Impossible d'unifier une fonction avec " + t);
         }
 
-        // Vérifier le nombre d'arguments
+        // vérifier le nombre d'arguments
         if (this.argsTypes.size() != other.argsTypes.size()) {
-            throw new UnsupportedOperationException("Nombre d'arguments différent");
+            throw new UnsupportedOperationException("ERREUR : Nombre d'arguments différent");
         }
 
         Map<UnknownType, Type> substitution = new HashMap<>();
 
-        // Unifier les types de retour
+        // unifier les types de retour
         Map<UnknownType, Type> retSubst = this.returnType.unify(other.returnType);
         substitution.putAll(retSubst);
 
-        // Appliquer la substitution aux arguments
+        // appliquer la substitution aux arguments
         ArrayList<Type> thisSubstArgs = new ArrayList<>();
         ArrayList<Type> otherSubstArgs = new ArrayList<>();
 
@@ -80,7 +80,7 @@ public class FunctionType extends Type {
             otherSubstArgs.add(substArg);
         }
 
-        // Unifier chaque paire d'arguments
+        // unifier chaque paire d'arguments
         for (int i = 0; i < thisSubstArgs.size(); i++) {
             Map<UnknownType, Type> argSubst = thisSubstArgs.get(i).unify(otherSubstArgs.get(i));
             substitution.putAll(argSubst);
@@ -91,10 +91,10 @@ public class FunctionType extends Type {
 
     @Override
     public Type substitute(UnknownType v, Type t) {
-        // Substituer dans le type de retour
+        // substituer dans le type de retour
         Type newReturnType = this.returnType.substitute(v, t);
 
-        // Substituer dans chaque type d'argument
+        // substituer dans chaque type d'argument
         ArrayList<Type> newArgsTypes = new ArrayList<>();
         for (Type argType : this.argsTypes) {
             newArgsTypes.add(argType.substitute(v, t));
@@ -105,10 +105,10 @@ public class FunctionType extends Type {
 
     @Override
     public boolean contains(UnknownType v) {
-        // Vérifier le type de retour
+        // vérifier le type de retour
         if (returnType.contains(v)) return true;
 
-        // Vérifier chaque argument
+        // vérifier chaque argument
         for (Type argType : argsTypes) {
             if (argType.contains(v)) return true;
         }
