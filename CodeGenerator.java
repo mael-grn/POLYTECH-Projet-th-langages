@@ -238,7 +238,7 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
             int argReg = getResultRegister(argProg);
 
             // ST arg, SP
-            program.addInstruction(new ST(argReg, stackPointerRegister));
+            program.addInstruction(new Mem(Mem.Op.ST, argReg, stackPointerRegister));
 
             // SP--
             program.addInstruction(
@@ -248,7 +248,7 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
 
         // 2) CALL f
         String fctName = ctx.VAR().getText();
-        program.addInstruction(new Call(fctName));
+        program.addInstruction(new JumpCall(JumpCall.Op.CALL, fctName));
 
         // 3) Nettoyage de la pile : SP += nbArgs
         if (nbArgs > 0) {
@@ -780,7 +780,7 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
 
             // LD paramReg <- [SP]
             program.addInstruction(
-                    new LD(paramReg, stackPointerRegister)
+                    new Mem(Mem.Op.LD, paramReg, stackPointerRegister)
             );
         }
 
