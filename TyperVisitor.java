@@ -42,6 +42,8 @@ public class TyperVisitor extends AbstractParseTreeVisitor<Type> implements gram
 
         return new PrimitiveType(Type.Base.BOOL);
     }
+
+    //propage chaque nouvelle contrainte à toutes les contraintes déjà stockées pour garantir la cohérence des types
     private void updateSubstitutions(Map<UnknownType, Type> newSb) {
         if (newSb == null) return;
         for (Map.Entry<UnknownType, Type> entry : newSb.entrySet()) {
@@ -91,6 +93,8 @@ public class TyperVisitor extends AbstractParseTreeVisitor<Type> implements gram
 
         return applyAll(contentVar);
     }
+
+    // résout le type donné en lui appliquant toutes les substitutions connues
     private Type applyAll(Type t){
         Type result = t;
         for (Map.Entry<UnknownType, Type> entry : types.entrySet()) {
@@ -446,9 +450,8 @@ public class TyperVisitor extends AbstractParseTreeVisitor<Type> implements gram
         return null;
     }
 
-
+    // retourne une copie avec les substitutions appliquées
     public Map<String, Type> getSymbolTable() {
-        // Retourne une copie avec les substitutions appliquées
         Map<String, Type> result = new HashMap<>();
         for (Map.Entry<String, Type> entry : symbolTable.entrySet()) {
             result.put(entry.getKey(), applyAll(entry.getValue()));
