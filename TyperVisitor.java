@@ -344,12 +344,13 @@ public class TyperVisitor extends AbstractParseTreeVisitor<Type> implements gram
         Type fctType = applyAll(symbolTable.get(fctName));
 
         if (fctType instanceof FunctionType originalFct) {
-            // --- ÉTAPE INDISPENSABLE : INSTANCIATION ---
-            // On crée de nouvelles variables (?#) pour cet appel précis [cite: 74-80]
+            if (ctx.expr().size() != originalFct.getNbArgs()) {
+                throw new RuntimeException("ERREUR : La fonction '" + fctName + "' attend " + originalFct.getNbArgs() + " arguments, mais " + ctx.expr().size() + " ont été fournis.");
+            }
+
             Map<UnknownType, Type> freshMap = new HashMap<>();
             FunctionType callSignature = (FunctionType) instantiate(originalFct, freshMap);
 
-            // On unifie les arguments passés avec les nouveaux arguments frais
             for (int i = 0; i < ctx.expr().size(); i++) {
                 Type providedArg = ctx.expr(i).accept(this);
                 Type expectedArg = applyAll(callSignature.getArgsType(i));

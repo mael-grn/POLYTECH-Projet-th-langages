@@ -29,7 +29,7 @@ public class ArrayType extends Type{
 
         // Si ce n'est pas un tableau et pas une inconnue, là on peut rouspéter
         if (!(t instanceof ArrayType other)) {
-            throw new RuntimeException("Cannot unify array type with non-array type");
+            throw new RuntimeException("ERREUR : Unification entre un Arraytype et non ArrayType impossible");
         }
 
         // Si c'est un autre tableau, on unifie le contenu
