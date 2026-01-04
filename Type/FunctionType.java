@@ -45,56 +45,97 @@ public class FunctionType extends Type {
 
     @Override
     public Map<UnknownType, Type> unify(Type t) {
-        // Done
         if (!(t instanceof FunctionType other)) {
-            throw new UnsupportedOperationException("Impossible d'unifier une fonction avec " + t);
+            throw new UnsupportedOperationException("ERREUR : Impossible d'unifier une fonction avec " + t);
         }
-        Map<UnknownType, Type> s1 = this.returnType.unify(other.returnType);
-        Type r1 = this.returnType;
-        Type r2 = other.returnType;
 
-        for (Map.Entry<UnknownType, Type> entry : s1.entrySet()) {
-            r1 = r1.substitute(entry.getKey(), entry.getValue());
-            r2 = r2.substitute(entry.getKey(), entry.getValue());
+        // vérifier le nombre d'arguments
+        if (this.argsTypes.size() != other.argsTypes.size()) {
+            throw new UnsupportedOperationException("ERREUR : Nombre d'arguments différent");
         }
-        Map<UnknownType, Type> s2 = r1.unify(r2);
-        Map<UnknownType, Type> result = new HashMap<>(s1);
-        result.replaceAll((key, type) -> {
-            Type updated = type;
-            for (Map.Entry<UnknownType, Type> entry : s2.entrySet()) {
-                updated = updated.substitute(entry.getKey(), entry.getValue());
+
+        Map<UnknownType, Type> substitution = new HashMap<>();
+
+        // unifier les types de retour
+        Map<UnknownType, Type> retSubst = this.returnType.unify(other.returnType);
+        substitution.putAll(retSubst);
+
+        // appliquer la substitution aux arguments
+        ArrayList<Type> thisSubstArgs = new ArrayList<>();
+        ArrayList<Type> otherSubstArgs = new ArrayList<>();
+
+        for (Type arg : this.argsTypes) {
+            Type substArg = arg;
+            for (Map.Entry<UnknownType, Type> entry : substitution.entrySet()) {
+                substArg = substArg.substitute(entry.getKey(), entry.getValue());
             }
-            return updated;
-        });
-        result.putAll(s2);
-        return result;
+            thisSubstArgs.add(substArg);
+        }
+
+        for (Type arg : other.argsTypes) {
+            Type substArg = arg;
+            for (Map.Entry<UnknownType, Type> entry : substitution.entrySet()) {
+                substArg = substArg.substitute(entry.getKey(), entry.getValue());
+            }
+            otherSubstArgs.add(substArg);
+        }
+
+        // unifier chaque paire d'arguments
+        for (int i = 0; i < thisSubstArgs.size(); i++) {
+            Map<UnknownType, Type> argSubst = thisSubstArgs.get(i).unify(otherSubstArgs.get(i));
+            substitution.putAll(argSubst);
+        }
+
+        return substitution;
     }
 
     @Override
     public Type substitute(UnknownType v, Type t) {
-        // Done
-        return new FunctionType(this.returnType.substitute(v,t), this.argsTypes);
+        // substituer dans le type de retour
+        Type newReturnType = this.returnType.substitute(v, t);
+
+        // substituer dans chaque type d'argument
+        ArrayList<Type> newArgsTypes = new ArrayList<>();
+        for (Type argType : this.argsTypes) {
+            newArgsTypes.add(argType.substitute(v, t));
+        }
+
+        return new FunctionType(newReturnType, newArgsTypes);
     }
 
     @Override
     public boolean contains(UnknownType v) {
-        return argsTypes.contains(v) || returnType.contains(v);
-        //Done
+        // vérifier le type de retour
+        if (returnType.contains(v)) return true;
+
+        // vérifier chaque argument
+        for (Type argType : argsTypes) {
+            if (argType.contains(v)) return true;
+        }
+
+        return false;
     }
 
     @Override
     public boolean equals(Object t) {
+        if (t == this) return true;
+        if (!(t instanceof FunctionType other)) return false;
 
-        //Done
-        if (t== this){return true;}
-        if (!(t instanceof FunctionType other)) {return false;}
-        return this.returnType == other.returnType && this.argsTypes == other.argsTypes;
+        if (!this.returnType.equals(other.returnType)) return false;
+        if (this.argsTypes.size() != other.argsTypes.size()) return false;
+
+        for (int i = 0; i < this.argsTypes.size(); i++) {
+            if (!this.argsTypes.get(i).equals(other.argsTypes.get(i))) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override
     public String toString() {
         //Done
-        return "(" + this.returnType + " -> " + this.argsTypes + ")";
+        return "(" + this.argsTypes + " -> " +  this.returnType + ")";
     }
 
 }

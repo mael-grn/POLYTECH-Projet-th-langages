@@ -22,13 +22,15 @@ public class ArrayType extends Type{
 
     @Override
     public Map<UnknownType, Type> unify(Type t) {
-        // Done
-        if (!(t instanceof ArrayType other)) {
-            throw new RuntimeException("Cannot unify array type with non-array type");
+        if (t instanceof UnknownType) {
+            return t.unify(this);
         }
 
+        if (!(t instanceof ArrayType other)) {
+            throw new RuntimeException("ERREUR : Unification entre un Arraytype et non ArrayType impossible");
+        }
+        // Si c'est un autre tableau, on unifie le contenu
         return this.getTabType().unify(other.getTabType());
-
     }
 
     @Override
@@ -55,7 +57,7 @@ public class ArrayType extends Type{
     @Override
     public String toString() {
         // Done
-        return "Array(" + this.getTabType().toString() + ")";
+        return this.getTabType().toString() + "[]";
     }
 
     

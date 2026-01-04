@@ -1,4 +1,4 @@
-import java.lang.ref.PhantomReference;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -42,6 +42,8 @@ public class TyperVisitor extends AbstractParseTreeVisitor<Type> implements gram
 
         return new PrimitiveType(Type.Base.BOOL);
     }
+
+    //propage chaque nouvelle contrainte à toutes les contraintes déjà stockées pour garantir la cohérence des types
     private void updateSubstitutions(Map<UnknownType, Type> newSb) {
         if (newSb == null) return;
         for (Map.Entry<UnknownType, Type> entry : newSb.entrySet()) {
@@ -91,6 +93,8 @@ public class TyperVisitor extends AbstractParseTreeVisitor<Type> implements gram
 
         return applyAll(contentVar);
     }
+
+    // résout le type donné en lui appliquant toutes les substitutions connues
     private Type applyAll(Type t){
         Type result = t;
         for (Map.Entry<UnknownType, Type> entry : types.entrySet()) {
@@ -218,8 +222,11 @@ public class TyperVisitor extends AbstractParseTreeVisitor<Type> implements gram
         Type decType = ctx.type().accept(this);
         String varName = ctx.VAR().getText();
 
-        symbolTable.put(varName, decType);
 
+        if (symbolTable.containsKey(varName)) {
+            throw new RuntimeException("ERREUR : La variable "+ varName +" déjà definis");
+        }
+        symbolTable.put(varName, decType);
         if (ctx.ASSIGN() !=null){
             Type initType = ctx.expr().accept(this);
             this.updateSubstitutions(decType.unify(initType));
@@ -245,7 +252,7 @@ public class TyperVisitor extends AbstractParseTreeVisitor<Type> implements gram
     public Type visitAssignment(grammarTCLParser.AssignmentContext ctx) {
         // Done
         String varName = ctx.VAR().getText();
-        
+
         if (!symbolTable.containsKey(varName)) {
             symbolTable.put(varName, new UnknownType());
         }
@@ -259,7 +266,6 @@ public class TyperVisitor extends AbstractParseTreeVisitor<Type> implements gram
             this.updateSubstitutions(curType.unify(new ArrayType(contentVar)));
             curType = applyAll(contentVar);
         }
-        List<grammarTCLParser.ExprContext> allExprs = ctx.expr();
         Type rightSideType = ctx.expr(ctx.expr().size() -1).accept(this);
         this.updateSubstitutions(curType.unify(rightSideType));
         return applyAll(curType);
@@ -277,14 +283,15 @@ public class TyperVisitor extends AbstractParseTreeVisitor<Type> implements gram
 
     @Override
     public Type visitIf(grammarTCLParser.IfContext ctx) {
-        // Done
         Type condType = ctx.expr().accept(this);
-        Type thenType = ctx.instr(0).accept(this);
-
         this.updateSubstitutions(condType.unify(new PrimitiveType(Type.Base.BOOL)));
 
-        if (ctx.instr().size()>1){
-            Type elseType = ctx.instr(1).accept(this);
+        // visiter le bloc 'then'
+        ctx.instr(0).accept(this);
+
+        // visiter le bloc 'else' s'il existe
+        if (ctx.instr().size() > 1) {
+            ctx.instr(1).accept(this);
         }
         return null;
     }
@@ -310,94 +317,122 @@ public class TyperVisitor extends AbstractParseTreeVisitor<Type> implements gram
             Type condType = ctx.expr().accept(this);
             this.updateSubstitutions(condType.unify(new PrimitiveType(Type.Base.BOOL)));
         }
-
         ctx.instr(1).accept(this);
-        
-        if (ctx.instr().size() > 2) {
-            ctx.instr(2).accept(this);
-        }
+
+        ctx.instr(2).accept(this);
 
         return null;
     }
 
     @Override
     public Type visitReturn(grammarTCLParser.ReturnContext ctx) {
-        // Done
         if (currentFunctionReturnType == null) return null;
 
         Type actRetType = ctx.expr().accept(this);
-        this.updateSubstitutions(actRetType.unify(currentFunctionReturnType));
+
+        // on utilise applyAll pour être sûr de comparer avec la contrainte déjà établie
+        this.updateSubstitutions(applyAll(currentFunctionReturnType).unify(actRetType));
+
         return applyAll(actRetType);
     }
     @Override
     public Type visitCall(grammarTCLParser.CallContext ctx) {
-        // Done
         String fctName = ctx.VAR().getText();
-
         if (!symbolTable.containsKey(fctName)) {
             symbolTable.put(fctName, new UnknownType());
         }
 
-        Type fctTypeInTable = symbolTable.get(fctName);
-        ArrayList<Type> providedArgs = new ArrayList<>();
+        // on récupère le type actuel de la fonction
+        Type fctType = applyAll(symbolTable.get(fctName));
 
-        for (grammarTCLParser.ExprContext exprCtx : ctx.expr()) {
-            providedArgs.add(exprCtx.accept(this));
+        if (fctType instanceof FunctionType originalFct) {
+            if (ctx.expr().size() != originalFct.getNbArgs()) {
+                throw new RuntimeException("ERREUR : La fonction '" + fctName + "' attend " + originalFct.getNbArgs() + " arguments, mais " + ctx.expr().size() + " ont été fournis.");
+            }
+
+            Map<UnknownType, Type> freshMap = new HashMap<>();
+            FunctionType callSignature = (FunctionType) instantiate(originalFct, freshMap);
+
+            for (int i = 0; i < ctx.expr().size(); i++) {
+                Type providedArg = ctx.expr(i).accept(this);
+                Type expectedArg = applyAll(callSignature.getArgsType(i));
+                this.updateSubstitutions(expectedArg.unify(providedArg));
+            }
+
+
+            return applyAll(callSignature.getReturnType());
         }
+        return applyAll(fctType);
+    }
 
-        ArrayList<Type> expectedArgsVars = new ArrayList<>();
 
-        for (int i = 0; i < providedArgs.size(); i++) {
-            expectedArgsVars.add(new UnknownType());
+    // elle permet de copier un type en remplaçant les inconnues par des nouvelles
+    private Type instantiate(Type t, Map<UnknownType, Type> freshMap) {
+        if (t instanceof UnknownType ut) {
+            return freshMap.computeIfAbsent(ut, k -> new UnknownType());
         }
-
-        Type returnVar = new UnknownType();
-        FunctionType callSignature = new FunctionType(returnVar, expectedArgsVars);
-
-        this.updateSubstitutions(fctTypeInTable.unify(callSignature));
-
-        for (int i = 0; i < providedArgs.size(); i++) {
-            Type updatedExpectedType = applyAll(expectedArgsVars.get(i));
-            this.updateSubstitutions(providedArgs.get(i).unify(updatedExpectedType));
+        if (t instanceof ArrayType at) {
+            return new ArrayType(instantiate(at.getTabType(), freshMap));
         }
-
-        return applyAll(returnVar);
+        if (t instanceof FunctionType ft) {
+            Type resRet = instantiate(ft.getReturnType(), freshMap);
+            ArrayList<Type> resArgs = new ArrayList<>();
+            for (int i = 0; i < ft.getNbArgs(); i++) {
+                resArgs.add(instantiate(ft.getArgsType(i), freshMap));
+            }
+            return new FunctionType(resRet, resArgs);
+        }
+        return t; //primitiveType ne change pas
     }
 
     @Override
     public Type visitCore_fct(grammarTCLParser.Core_fctContext ctx) {
-        // Done
+        // visiter toutes les instructions du corps
         for (grammarTCLParser.InstrContext instrCtx : ctx.instr()) {
             instrCtx.accept(this);
         }
 
-        Type actRetType = ctx.expr().accept(this);
-
-        if (this.currentFunctionReturnType != null) {
-            this.updateSubstitutions(actRetType.unify(this.currentFunctionReturnType));
+        // vérifier si l'expression de return final existe pour éviter le crash
+        if (ctx.expr() != null) {
+            Type actRetType = ctx.expr().accept(this);
+            if (this.currentFunctionReturnType != null) {
+                this.updateSubstitutions(actRetType.unify(this.currentFunctionReturnType));
+            }
+            return applyAll(actRetType);
         }
 
-        return applyAll(actRetType);
+        return null;
     }
 
     @Override
     public Type visitDecl_fct(grammarTCLParser.Decl_fctContext ctx) {
-        // Done
-        Type returnType = ctx.type(0).accept(this);
         String fctName = ctx.VAR(0).getText();
-        ArrayList<Type> argsTypes = new ArrayList<>();
 
+        // sauvegarde de la table globale
+        Map<String, Type> globalScope = new HashMap<>(symbolTable);
+
+        Type returnType = ctx.type(0).accept(this);
+        ArrayList<Type> argsTypes = new ArrayList<>();
         for (int i = 1; i < ctx.type().size(); i++) {
-            argsTypes.add(ctx.type(i).accept(this));
+            Type argType = ctx.type(i).accept(this);
+            argsTypes.add(argType);
+            // on ajoute l'argument localement
+            symbolTable.put(ctx.VAR(i).getText(), argType);
         }
 
         FunctionType fctSignature = new FunctionType(returnType, argsTypes);
         symbolTable.put(fctName, fctSignature);
         this.currentFunctionReturnType = returnType;
-        ctx.core_fct().accept(this);
 
+        ctx.core_fct().accept(this);
         this.currentFunctionReturnType = null;
-        return fctSignature;
+
+        // on efface les variables locales mais on garde la signature de la fonction pour le futur
+        Type finalSig = applyAll(fctSignature);
+        symbolTable = globalScope;
+        symbolTable.put(fctName, finalSig);
+
+        return finalSig;
     }
 
     @Override
@@ -415,5 +450,14 @@ public class TyperVisitor extends AbstractParseTreeVisitor<Type> implements gram
         return null;
     }
 
-    
+    // retourne une copie avec les substitutions appliquées
+    public Map<String, Type> getSymbolTable() {
+        Map<String, Type> result = new HashMap<>();
+        for (Map.Entry<String, Type> entry : symbolTable.entrySet()) {
+            result.put(entry.getKey(), applyAll(entry.getValue()));
+        }
+        return result;
+    }
+
+
 }

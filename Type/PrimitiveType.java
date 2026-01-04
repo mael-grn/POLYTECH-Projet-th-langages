@@ -1,5 +1,4 @@
 package Type;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 
@@ -24,12 +23,14 @@ public  class PrimitiveType extends Type {
 
     @Override
     public Map<UnknownType, Type> unify(Type t) {
-        // Done
+        if (t instanceof UnknownType) return t.unify(this);
+
         if (!(t instanceof PrimitiveType other)) {
-            throw new UnsupportedOperationException("Cannot unify Primitive type with non-primitive type");
+            throw new RuntimeException("ERREUR : Incompatible types: Primitive vs " + t);
         }
+
         if (this.getType() != other.getType()) {
-            throw new UnsupportedOperationException("Échec d'unification : types primitifs différents");
+            throw new RuntimeException("ERREUR : Échec d'unification : " + this.type + " vs " + other.type);
         }
         return Collections.emptyMap();
     }

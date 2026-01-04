@@ -73,45 +73,54 @@ public class UnknownType extends Type {
 
     @Override
     public Map<UnknownType, Type> unify(Type t) {
-        // Done
-        Map<UnknownType, Type> sub = new HashMap<>();
+        // DONE
+        Map<UnknownType, Type> substitution = new HashMap<>();
+
+        // si c'est le même type pas de substitution nécessaire
         if (this.equals(t)) {
-            return sub;
+            return substitution;
         }
+
+        // éviter les types récursifs comme A = TAB[A]
         if (t.contains(this)) {
-            throw new UnsupportedOperationException("type récursif");
+            throw new RuntimeException("ERREUR : Type récursif détecté: " + this + " apparaît dans " + t);
         }
-        sub.put(this, t);
-        return sub;
+
+        substitution.put(this, t);
+        return substitution;
     }
 
     @Override
     public Type substitute(UnknownType v, Type t) {
-        //Done
-        if (this.equals(v)) return t;
+        // DONE
+        // si c'est la variable qu'on veut remplacer
+        if (this.equals(v)) {
+            return t;
+        }
+        // sinon, on ne change rien
         return this;
     }
 
     @Override
     public boolean contains(UnknownType v) {
-        // Done
+        // DONE
+        // Un UnknownType contient v s'il est égal à v
         return this.equals(v);
     }
 
     @Override
     public boolean equals(Object t) {
-        // Done
+        // DONE
         if (this == t) return true;
-        if (!(t instanceof UnknownType other)) return false;
-        return this.varName.equals(other.varName);
+        if (!(t instanceof UnknownType)) return false;
+        UnknownType other = (UnknownType) t;
+        return this.varName.equals(other.varName) && this.varIndex == other.varIndex;
     }
 
     @Override
     public String toString() {
-        // Done
-        return "?"+varName;
+        // DONE
+        return "AUTO"; //varName + varIndex
     }
-
-    
 
 }
