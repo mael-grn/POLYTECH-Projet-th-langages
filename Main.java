@@ -1,4 +1,5 @@
 import Asm.Program;
+import RegisterAllocator.RegisterAllocator;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -20,9 +21,15 @@ public class Main {
 			grammarTCLParser parser = new grammarTCLParser(tokens);
 			grammarTCLParser.MainContext tree = parser.main();
 
+			// Groupe 2: Génération de code
 			CodeGenerator codegen = new CodeGenerator(new HashMap<>());
             System.out.println(tree.toStringTree(parser));
 			Program prog = codegen.visit(tree);
+
+			// Groupe 3: Allocation de registres
+			RegisterAllocator ra = new RegisterAllocator(prog);
+			prog = ra.minimizeRegisters();
+
 			PrintWriter writer = new PrintWriter("prog.asm");
 			writer.print(prog.toString());
 			writer.close();
@@ -31,9 +38,9 @@ public class Main {
 		} catch (FileNotFoundException e) {
 			System.out.println("Fichier de sortie manquant.");
 			throw new RuntimeException(e);
-        } catch (IOException e) {
+		} catch (IOException e) {
 			System.out.println("Impossible de generer le stream de caractère.");
 			throw new RuntimeException(e);
 		}
-    }
-};
+	}
+}

@@ -1,2 +1,5 @@
-int f() { return 7; }
-int main() { return f(); }
+int main() {
+    int x = 42;
+    print(x);
+    return 0;
+}
