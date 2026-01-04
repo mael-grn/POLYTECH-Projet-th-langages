@@ -161,7 +161,7 @@ public class RegisterAllocator {
       pushedRegs.add(color + COLOR_OFFSET);
 
       prog.addInstruction(new Asm.UALi(Asm.UALi.Op.SUB, STACK_POINTER, STACK_POINTER, 1));
-      prog.addInstruction(new Asm.Mem(Asm.Mem.Op.ST, STACK_POINTER, color + COLOR_OFFSET));
+      prog.addInstruction(new Asm.Mem(Asm.Mem.Op.ST, color + COLOR_OFFSET, STACK_POINTER));
     }
 
     if (DEBUG_MODE)
@@ -191,7 +191,7 @@ public class RegisterAllocator {
 
       poppedRegs.add(color + COLOR_OFFSET);
 
-      prog.addInstruction(new Asm.Mem(Asm.Mem.Op.ST, STACK_POINTER, color + COLOR_OFFSET));
+      prog.addInstruction(new Asm.Mem(Asm.Mem.Op.ST, color + COLOR_OFFSET, STACK_POINTER));
       prog.addInstruction(new Asm.UALi(Asm.UALi.Op.ADD, STACK_POINTER, STACK_POINTER, 1));
     }
 
