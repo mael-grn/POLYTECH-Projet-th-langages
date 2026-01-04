@@ -210,8 +210,10 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
 
     @Override
     public Program visitBrackets(grammarTCLParser.BracketsContext ctx) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'visitBrackets'");
+
+        // les parentheses n'affectent pas la génération de code; on visite simplement l'expression interne
+        return visit(ctx.expr());
+
     }
 
     @Override
@@ -461,8 +463,25 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
 
     @Override
     public Program visitPrint(grammarTCLParser.PrintContext ctx) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'visitPrint'");
+
+        String varName = ctx.VAR().getText();
+        int address = variableRegisters.get(varName);
+        int valueReg = newRegister();
+        Program program = new Program();
+        // Load address
+        int addrReg = newRegister();
+        Instruction zeroAddr = new UAL(UAL.Op.XOR, addrReg, addrReg, addrReg);
+        program.addInstruction(zeroAddr);
+        Instruction loadAddr = new UALi(UALi.Op.ADD, addrReg, addrReg, address);
+        program.addInstruction(loadAddr);
+        // Load value
+        Instruction loadInstr = new Mem(Mem.Op.LD, valueReg, addrReg);
+        program.addInstruction(loadInstr);
+        // Print
+        Instruction printInstr = new IO(IO.Op.PRINT, valueReg);
+        program.addInstruction(printInstr);
+        return program;
+
     }
 
     @Override
