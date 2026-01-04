@@ -1,0 +1,8 @@
+f: XOR R2 R2 R2
+ADDi R2 R2 7
+ADDi R0 R2 0
+RET
+main: CALL f
+ADDi R3 R0 0
+ADDi R0 R3 0
+RET

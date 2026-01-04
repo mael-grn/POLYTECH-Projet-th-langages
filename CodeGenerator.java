@@ -227,42 +227,48 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
     @Override
     public Program visitCall(grammarTCLParser.CallContext ctx) {
         Program program = new Program();
-
         int nbArgs = ctx.expr().size();
 
-        // 1) Push des arguments (ordre inverse)
+        // push des arguments en ordre inverse
         for (int i = nbArgs - 1; i >= 0; i--) {
             Program argProg = visit(ctx.expr(i));
             program.addInstructions(argProg);
-
             int argReg = getResultRegister(argProg);
 
-            // ST arg, SP
-            program.addInstruction(new Mem(Mem.Op.ST, argReg, stackPointerRegister));
-
-            // SP--
+            // SP = SP - 1
             program.addInstruction(
                     new UALi(UALi.Op.ADD, stackPointerRegister, stackPointerRegister, -1)
             );
+
+            // MEM[SP] = arg
+            program.addInstruction(
+                    new Mem(Mem.Op.ST, argReg, stackPointerRegister)
+            );
         }
 
-        // 2) CALL f
+        // CALL f
         String fctName = ctx.VAR().getText();
-        program.addInstruction(new JumpCall(JumpCall.Op.CALL, fctName));
+        program.addInstruction(
+                new JumpCall(JumpCall.Op.CALL, fctName)
+        );
 
-        // 3) Nettoyage de la pile : SP += nbArgs
+        // nettoyage pile : SP = SP + nbArgs
         if (nbArgs > 0) {
             program.addInstruction(
                     new UALi(UALi.Op.ADD, stackPointerRegister, stackPointerRegister, nbArgs)
             );
         }
 
-        // 4) Résultat du call : R0 -> nouveau registre
+        // résultat : R0 -> registre résultat
         int destReg = newRegister();
-        program.addInstruction(new UALi(UALi.Op.ADD, destReg, 0, 0));
+        program.addInstruction(
+                new UALi(UALi.Op.ADD, destReg, 0, 0)
+        );
 
         return program;
     }
+
+
 
 
     @Override
@@ -765,11 +771,6 @@ public Program visitPrint(grammarTCLParser.PrintContext ctx) {
 
         for (int i = 0; i < nbParams; i++) {
 
-            // SP++
-            program.addInstruction(
-                    new UALi(UALi.Op.ADD, stackPointerRegister, stackPointerRegister, 1)
-            );
-
             // Nom du paramètre
             String paramName = ctx.VAR(i + 1).getText();
 
@@ -780,7 +781,13 @@ public Program visitPrint(grammarTCLParser.PrintContext ctx) {
             program.addInstruction(
                     new Mem(Mem.Op.LD, paramReg, stackPointerRegister)
             );
+
+            // SP++
+            program.addInstruction(
+                    new UALi(UALi.Op.ADD, stackPointerRegister, stackPointerRegister, 1)
+            );
         }
+
 
         // =========================
         // Corps de la fonction

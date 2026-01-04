@@ -1,0 +1,4 @@
+main: XOR R2 R2 R2
+ADDi R2 R2 7
+ADDi R0 R2 0
+RET
