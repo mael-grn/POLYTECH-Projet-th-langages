@@ -126,7 +126,7 @@ public class UnknownType extends Type {
     public String toString() {
         // TODO Auto-generated method stub
         // DONE
-        return varName + varIndex;
+        return "AUTO"; //varName + varIndex
     }
 
 }

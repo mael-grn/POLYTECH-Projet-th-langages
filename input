@@ -2,6 +2,24 @@ auto f(auto x){
     return {x};
 }
 
+auto o(auto k){
+    if (k == 1){
+        return true;
+    }
+    return false;
+}
+
+auto somme(int r, int q){
+    return r + q;
+}
+
+auto w(auto q){
+    if( q == o(1)){
+        return 35;
+    }
+    return 0;
+}
+
 int factorielle(int n) {
     if (n <= 1) {
         return 1;
@@ -13,6 +31,7 @@ auto h(auto[] tab){
     return tab[0];
 }
 int main(){
+    bool[] j={true};
     int[] x = f(0);
     bool[] y = f(true);
     int[][] g = f({1});
@@ -25,10 +44,12 @@ int main(){
 
     int l = h(h(f({1,2,3})));
     if (y == {true}){
-        return 2;
+
+        return factorielle(2);
     }else{
-        return 1;
+        return h(f(1));
     }
-    int g = factorielle(5);
-    return g;
+    int g = w(true);
+    auto somme1 = somme(g,0);
+    return somme1 ;
 }

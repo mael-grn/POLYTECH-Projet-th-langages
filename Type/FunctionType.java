@@ -135,7 +135,7 @@ public class FunctionType extends Type {
     @Override
     public String toString() {
         //Done
-        return "(" + this.returnType + " -> " + this.argsTypes + ")";
+        return "(" + this.argsTypes + " -> " +  this.returnType + ")";
     }
 
 }
