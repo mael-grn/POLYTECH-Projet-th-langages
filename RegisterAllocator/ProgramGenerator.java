@@ -9,8 +9,29 @@ import Asm.Program;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 public class ProgramGenerator {
+  private static final List<String> UAL_INSTRUCTIONS = Arrays.stream(new String[]{
+          "ADD", "SUB", "MUL", "DIV", "MOD", "XOR", "AND", "OR", "SL", "SR"
+  }).toList();
+  private static final List<String> UALi_INSTRUCTIONS = Arrays.stream(new String[]{
+          "ADDi", "SUBi", "MULi", "DIVi", "MODi", "XORi", "ANDi", "ORi", "SLi", "SRi"
+  }).toList();
+  private static final List<String> JUMPCALL_INSTRUCTIONS = Arrays.stream(new String[]{
+          "JMP", "CALL"
+  }).toList();
+  private static final List<String> CONDJUMP_INSTRUCTIONS = Arrays.stream(new String[]{
+          "JINF", "JEQU", "JSUP", "JNEQ", "JIEQ", "JSEQ"
+  }).toList();
+  private static final List<String> IO_INSTRUCTIONS = Arrays.stream(new String[]{
+          "IN", "OUT", "PRINT", "READ"
+  }).toList();
+  private static final List<String> MEM_INSTRUCTIONS = Arrays.stream(new String[]{
+          "LD", "ST"
+  }).toList();
+
+
   public static Program compile(String code) {
     String[] lines = code.split("\n");
     return compile(lines);
@@ -36,95 +57,70 @@ public class ProgramGenerator {
         tokens.remove(0);
       }
 
-      if (tokens.get(0).equals("XOR")) {
+      String op = tokens.get(0);
+
+      if (UAL_INSTRUCTIONS.contains(op)) {
         int rd = Integer.parseInt(tokens.get(1).substring(1));
         int rs1 = Integer.parseInt(tokens.get(2).substring(1));
         int rs2 = Integer.parseInt(tokens.get(3).substring(1));
+        Asm.UAL.Op operation = Asm.UAL.Op.valueOf(op);
         if (label != null) {
-          program.addInstruction(new Asm.UAL(label, Asm.UAL.Op.XOR, rd, rs1, rs2));
+          program.addInstruction(new Asm.UAL(label, operation, rd, rs1, rs2));
         } else {
-          program.addInstruction(new Asm.UAL(Asm.UAL.Op.XOR, rd, rs1, rs2));
+          program.addInstruction(new Asm.UAL(operation, rd, rs1, rs2));
         }
-      } else if (tokens.get(0).equals("ADDi")) {
+      } else if (UALi_INSTRUCTIONS.contains(op)) {
         int rd = Integer.parseInt(tokens.get(1).substring(1));
         int rs1 = Integer.parseInt(tokens.get(2).substring(1));
         int imm = Integer.parseInt(tokens.get(3));
+        Asm.UALi.Op operation = Asm.UALi.Op.valueOf(op.substring(0, op.length() - 1));
         if (label != null) {
-          program.addInstruction(new Asm.UALi(label, Asm.UALi.Op.ADD, rd, rs1, imm));
+          program.addInstruction(new Asm.UALi(label, operation, rd, rs1, imm));
         } else {
-          program.addInstruction(new Asm.UALi(Asm.UALi.Op.ADD, rd, rs1, imm));
+          program.addInstruction(new Asm.UALi(operation, rd, rs1, imm));
         }
-      } else if (tokens.get(0).equals("ADD")) {
-        int rd = Integer.parseInt(tokens.get(1).substring(1));
-        int rs1 = Integer.parseInt(tokens.get(2).substring(1));
-        int imm = Integer.parseInt(tokens.get(3).substring(1));
-        if (label != null) {
-          program.addInstruction(new Asm.UAL(label, Asm.UAL.Op.ADD, rd, rs1, imm));
-        } else {
-          program.addInstruction(new Asm.UAL(Asm.UAL.Op.ADD, rd, rs1, imm));
-        }
-      } else if (tokens.get(0).equals("MUL")) {
-        int rd = Integer.parseInt(tokens.get(1).substring(1));
-        int rs1 = Integer.parseInt(tokens.get(2).substring(1));
-        int imm = Integer.parseInt(tokens.get(3).substring(1));
-        if (label != null) {
-          program.addInstruction(new Asm.UAL(label, Asm.UAL.Op.ADD, rd, rs1, imm));
-        } else {
-          program.addInstruction(new Asm.UAL(Asm.UAL.Op.MUL, rd, rs1, imm));
-        }
-      } else if (tokens.get(0).equals("JMP")) {
+      } else if (JUMPCALL_INSTRUCTIONS.contains(op)) {
         String destLabel = tokens.get(1);
+        Asm.JumpCall.Op operation = Asm.JumpCall.Op.valueOf(op);
         if (label != null) {
-          program.addInstruction(new Asm.JumpCall(label, Asm.JumpCall.Op.JMP, destLabel));
+          program.addInstruction(new Asm.JumpCall(label, operation, destLabel));
         } else {
-          program.addInstruction(new Asm.JumpCall(Asm.JumpCall.Op.JMP, destLabel));
+          program.addInstruction(new Asm.JumpCall(operation, destLabel));
         }
-      } else if (tokens.get(0).equals("JEQU")) {
+      } else if (CONDJUMP_INSTRUCTIONS.contains(op)) {
         int rs1 = Integer.parseInt(tokens.get(1).substring(1));
         int rs2 = Integer.parseInt(tokens.get(2).substring(1));
         String destLabel = tokens.get(3);
+        Asm.CondJump.Op operation = Asm.CondJump.Op.valueOf(op);
         if (label != null) {
-          program.addInstruction(new Asm.CondJump(label, Asm.CondJump.Op.JEQU, rs1, rs2, destLabel));
+          program.addInstruction(new Asm.CondJump(label, operation, rs1, rs2, destLabel));
         } else {
-          program.addInstruction(new Asm.CondJump(Asm.CondJump.Op.JEQU, rs1, rs2, destLabel));
+          program.addInstruction(new Asm.CondJump(operation, rs1, rs2, destLabel));
         }
-      } else if (tokens.get(0).equals("JSEQ")) {
-        int rs1 = Integer.parseInt(tokens.get(1).substring(1));
-        int rs2 = Integer.parseInt(tokens.get(2).substring(1));
-        String destLabel = tokens.get(3);
+      } else if (IO_INSTRUCTIONS.contains(op)) {
+        int rs = Integer.parseInt(tokens.get(1).substring(1));
+        Asm.IO.Op operation = Asm.IO.Op.valueOf(op);
         if (label != null) {
-          program.addInstruction(new Asm.CondJump(label, Asm.CondJump.Op.JSEQ, rs1, rs2, destLabel));
+          program.addInstruction(new Asm.IO(label, operation, rs));
         } else {
-          program.addInstruction(new Asm.CondJump(Asm.CondJump.Op.JSEQ, rs1, rs2, destLabel));
+          program.addInstruction(new Asm.IO(operation, rs));
         }
-      } else if (tokens.get(0).equals("CALL")) {
-        String destLabel = tokens.get(1);
+      } else if (MEM_INSTRUCTIONS.contains(op)) {
+        int rd = Integer.parseInt(tokens.get(1).substring(1));
+        int addr = Integer.parseInt(tokens.get(2).substring(1));
+        Asm.Mem.Op operation = Asm.Mem.Op.valueOf(op);
         if (label != null) {
-          program.addInstruction(new Asm.JumpCall(label, Asm.JumpCall.Op.CALL, destLabel));
+          program.addInstruction(new Asm.Mem(label, operation, rd, addr));
         } else {
-          program.addInstruction(new Asm.JumpCall(Asm.JumpCall.Op.CALL, destLabel));
+          program.addInstruction(new Asm.Mem(operation, rd, addr));
         }
-      } else if (tokens.get(0).equals("RET")) {
+      } else if (op.equals("RET")) {
         if (label != null) {
           program.addInstruction(new Asm.Ret(label));
         } else {
           program.addInstruction(new Asm.Ret());
         }
-      } else if (tokens.get(0).equals("OUT")) {
-        int rs = Integer.parseInt(tokens.get(1).substring(1));
-        if (label != null) {
-          program.addInstruction(new Asm.IO(label, Asm.IO.Op.OUT, rs));
-        } else {
-          program.addInstruction(new Asm.IO(Asm.IO.Op.OUT, rs));
-        }
-      } else if (tokens.get(0).equals("PRINT")) {
-        int rs = Integer.parseInt(tokens.get(1).substring(1));
-        if (label != null) {
-          program.addInstruction(new Asm.IO(label, Asm.IO.Op.PRINT, rs));
-        } else {
-          program.addInstruction(new Asm.IO(Asm.IO.Op.PRINT, rs));
-        }
-      } else if (tokens.get(0).equals("STOP")) {
+      } else if (op.equals("STOP")) {
         if (label != null) {
           program.addInstruction(new Asm.Stop(label));
         } else {
