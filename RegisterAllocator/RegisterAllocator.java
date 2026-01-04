@@ -30,13 +30,13 @@ public class RegisterAllocator {
     CFGAnalysis cfgAnalyzer = new CFGAnalysis(cfg);
     this.interferenceGraph = cfgAnalyzer.buildInterferenceGraph();
 
-    /* int nbColors = this.interferenceGraph.color();
+    int nbColors = this.interferenceGraph.color();
 
-    // TODO :  Gérer le case où on n'a pas assez de registres
+    // TODO :  Gérer le cas où on n'a pas assez de registres
 
     System.out.println(nbColors + " colors");
 
-    for (int i = 0; i <= 4; i++) {
+    /* for (int i = 0; i <= 4; i++) {
       System.out.println("Reg " + i + " -> Color " + this.interferenceGraph.getColor(i));
     } */
 
