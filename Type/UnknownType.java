@@ -73,7 +73,6 @@ public class UnknownType extends Type {
 
     @Override
     public Map<UnknownType, Type> unify(Type t) {
-        // TODO Auto-generated method stub
         // DONE
         Map<UnknownType, Type> substitution = new HashMap<>();
 
@@ -82,7 +81,7 @@ public class UnknownType extends Type {
             return substitution;
         }
 
-        // Occurs check : éviter les types récursifs comme α = Array(α)
+        // éviter les types récursifs comme α = Array(α)
         if (t.contains(this)) {
             throw new RuntimeException("Type récursif détecté: " + this + " apparaît dans " + t);
         }
@@ -94,7 +93,6 @@ public class UnknownType extends Type {
 
     @Override
     public Type substitute(UnknownType v, Type t) {
-        // TODO Auto-generated method stub
         // DONE
         // Si c'est la variable qu'on veut remplacer
         if (this.equals(v)) {
@@ -106,7 +104,6 @@ public class UnknownType extends Type {
 
     @Override
     public boolean contains(UnknownType v) {
-        // TODO Auto-generated method stub
         // DONE
         // Un UnknownType contient v s'il est égal à v
         return this.equals(v);
@@ -114,7 +111,6 @@ public class UnknownType extends Type {
 
     @Override
     public boolean equals(Object t) {
-        // TODO Auto-generated method stub
         // DONE
         if (this == t) return true;
         if (!(t instanceof UnknownType)) return false;
@@ -124,7 +120,6 @@ public class UnknownType extends Type {
 
     @Override
     public String toString() {
-        // TODO Auto-generated method stub
         // DONE
         return "AUTO"; //varName + varIndex
     }

@@ -30,7 +30,7 @@ public  class PrimitiveType extends Type {
         }
 
         if (this.getType() != other.getType()) {
-            // C'est ici que l'erreur doit être lancée !
+            // C'est ici que l'erreur doit être lancée
             throw new RuntimeException("Échec d'unification : " + this.type + " vs " + other.type);
         }
         return Collections.emptyMap();

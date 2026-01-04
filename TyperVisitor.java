@@ -406,7 +406,7 @@ public class TyperVisitor extends AbstractParseTreeVisitor<Type> implements gram
     public Type visitDecl_fct(grammarTCLParser.Decl_fctContext ctx) {
         String fctName = ctx.VAR(0).getText();
 
-        // 1. Sauvegarde de la table globale (on cache les variables du main) [cite: 43-44]
+        // 1. Sauvegarde de la table globale (on cache les variables du main)
         Map<String, Type> globalScope = new HashMap<>(symbolTable);
 
         Type returnType = ctx.type(0).accept(this);
@@ -414,7 +414,7 @@ public class TyperVisitor extends AbstractParseTreeVisitor<Type> implements gram
         for (int i = 1; i < ctx.type().size(); i++) {
             Type argType = ctx.type(i).accept(this);
             argsTypes.add(argType);
-            // On ajoute l'argument localement [cite: 46-47]
+            // On ajoute l'argument localement
             symbolTable.put(ctx.VAR(i).getText(), argType);
         }
 
@@ -426,7 +426,7 @@ public class TyperVisitor extends AbstractParseTreeVisitor<Type> implements gram
         this.currentFunctionReturnType = null;
 
         // 2. RESTAURATION : On efface les variables locales (x, etc.)
-        // mais on garde la signature de la fonction pour le futur [cite: 44]
+        // mais on garde la signature de la fonction pour le futur
         Type finalSig = applyAll(fctSignature);
         symbolTable = globalScope;
         symbolTable.put(fctName, finalSig);
@@ -449,7 +449,7 @@ public class TyperVisitor extends AbstractParseTreeVisitor<Type> implements gram
         return null;
     }
 
-    // Dans TyperVisitor, ajoute :
+
     public Map<String, Type> getSymbolTable() {
         // Retourne une copie avec les substitutions appliquées
         Map<String, Type> result = new HashMap<>();
