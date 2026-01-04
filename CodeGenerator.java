@@ -525,7 +525,7 @@ public Program visitPrint(grammarTCLParser.PrintContext ctx) {
         // Récupérer l'expression de droite (première expr trouvée)
         grammarTCLParser.ExprContext rhs = ctx.expr(0); // <-- si ça compile, garde ça
         Program exprProgram = visit(rhs);
-
+        
 
         program.addInstructions(exprProgram);
         int exprReg = getResultRegister(exprProgram);
@@ -754,11 +754,6 @@ public Program visitPrint(grammarTCLParser.PrintContext ctx) {
     public Program visitDecl_fct(grammarTCLParser.Decl_fctContext ctx) {
         Program program = new Program();
 
-<<<<<<< HEAD
-        String name = ctx.VAR(0).getText(); // nom de la fonction
-        if (p != null && !p.getInstructions().isEmpty()) {
-            p.getInstructions().get(0).setLabel(name);
-=======
         // Nom de la fonction
         String fctName = ctx.VAR(0).getText();
 
@@ -785,7 +780,6 @@ public Program visitPrint(grammarTCLParser.PrintContext ctx) {
             program.addInstruction(
                     new Mem(Mem.Op.LD, paramReg, stackPointerRegister)
             );
->>>>>>> 14b7a27716b83b303dddbbcb4fb9718294200d03
         }
 
         // =========================
