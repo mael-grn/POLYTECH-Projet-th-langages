@@ -60,11 +60,9 @@ public class RegisterAllocator {
 
     // TODO :  Gérer le cas où on n'a pas assez de registres
 
-    if (DEBUG_MODE) {
-        // Initialisation du pointeur de pile (SP)
-        minimizedProg.addInstruction(new Asm.UAL(Asm.UAL.Op.XOR, STACK_POINTER, STACK_POINTER, STACK_POINTER));
-        minimizedProg.addInstruction(new Asm.UALi(Asm.UALi.Op.ADD, STACK_POINTER, STACK_POINTER, DEFAULT_SP_VALUE));
-    }
+    // Initialisation du pointeur de pile (SP)
+    minimizedProg.addInstruction(new Asm.UAL(Asm.UAL.Op.XOR, STACK_POINTER, STACK_POINTER, STACK_POINTER));
+    minimizedProg.addInstruction(new Asm.UALi(Asm.UALi.Op.ADD, STACK_POINTER, STACK_POINTER, DEFAULT_SP_VALUE));
 
     // Calcul des nouvelles instructions avec les registres renommés, et ajout au nouveau programme
     for (Instruction i : program.getInstructions()) {
