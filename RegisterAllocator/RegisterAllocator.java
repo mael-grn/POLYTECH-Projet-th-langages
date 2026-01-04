@@ -10,7 +10,7 @@ import java.util.Set;
 public class RegisterAllocator {
   private final Program program;
 
-  private final static boolean DEBUG_MODE = true;
+  private final static boolean DEBUG_MODE = false;
 
   private static final int MAX_REGISTERS = 32;
   private static final int STACK_POINTER = 1;
@@ -196,7 +196,6 @@ public class RegisterAllocator {
       prog.addInstruction(new Asm.Mem(Asm.Mem.Op.ST, STACK_POINTER, color + COLOR_OFFSET));
       prog.addInstruction(new Asm.UALi(Asm.UALi.Op.ADD, STACK_POINTER, STACK_POINTER, 1));
     }
-
 
 
     return prog;
