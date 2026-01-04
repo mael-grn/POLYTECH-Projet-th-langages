@@ -67,7 +67,7 @@ public class TyperVisitor extends AbstractParseTreeVisitor<Type> implements gram
 
     @Override
     public Type visitOpposite(grammarTCLParser.OppositeContext ctx) {
-        // Dnoe
+        // Done
         Type t = visit(ctx.expr());
         Type intType = new PrimitiveType(Type.Base.INT);
         this.updateSubstitutions(t.unify(intType));
