@@ -399,7 +399,7 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
         Program program = new Program();
 
         // Stockage de la valeur actuelle du pointeur de heap, correspondant au début du tableau
-        int tabStartReg = getLastUsedRegister();
+        int tabStartReg = newRegister();
         program.addInstruction(new UALi(UALi.Op.ADD, tabStartReg, tabStartReg, heapPointer)); // Chargement de l'adresse du début du tableau
 
         // Récupération des valeurs à insérer dans le tableau
