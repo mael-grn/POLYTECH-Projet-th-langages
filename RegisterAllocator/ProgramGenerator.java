@@ -63,6 +63,15 @@ public class ProgramGenerator {
         } else {
           program.addInstruction(new Asm.UAL(Asm.UAL.Op.ADD, rd, rs1, imm));
         }
+      } else if (tokens.get(0).equals("MUL")) {
+        int rd = Integer.parseInt(tokens.get(1).substring(1));
+        int rs1 = Integer.parseInt(tokens.get(2).substring(1));
+        int imm = Integer.parseInt(tokens.get(3).substring(1));
+        if (label != null) {
+          program.addInstruction(new Asm.UAL(label, Asm.UAL.Op.ADD, rd, rs1, imm));
+        } else {
+          program.addInstruction(new Asm.UAL(Asm.UAL.Op.MUL, rd, rs1, imm));
+        }
       } else if (tokens.get(0).equals("JMP")) {
         String destLabel = tokens.get(1);
         if (label != null) {
@@ -107,6 +116,13 @@ public class ProgramGenerator {
           program.addInstruction(new Asm.IO(label, Asm.IO.Op.OUT, rs));
         } else {
           program.addInstruction(new Asm.IO(Asm.IO.Op.OUT, rs));
+        }
+      } else if (tokens.get(0).equals("PRINT")) {
+        int rs = Integer.parseInt(tokens.get(1).substring(1));
+        if (label != null) {
+          program.addInstruction(new Asm.IO(label, Asm.IO.Op.PRINT, rs));
+        } else {
+          program.addInstruction(new Asm.IO(Asm.IO.Op.PRINT, rs));
         }
       } else if (tokens.get(0).equals("STOP")) {
         if (label != null) {

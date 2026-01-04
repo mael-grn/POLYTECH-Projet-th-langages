@@ -73,9 +73,9 @@ public class ControlGraph {
       graph.addVertex(i);
 
       if (prevInstruction != null) {
-        if (!(prevInstruction instanceof JumpCall) && !(prevInstruction instanceof Ret)) {
+        if (!(prevInstruction instanceof JumpCall) && !(prevInstruction instanceof Ret) && !(prevInstruction instanceof Stop)) {
           // On relie l'instruction précédente à l'instruction courante
-          // sauf si la précédente est un JMP/CALL/RET
+          // sauf si la précédente est un JMP/CALL/RET/STOP
           graph.addEdge(prevInstruction, i);
 
           // si la précédente est un CondJump, on relie aussi le CondJump
