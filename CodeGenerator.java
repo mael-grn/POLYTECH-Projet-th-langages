@@ -8,7 +8,7 @@ import org.antlr.v4.runtime.tree.AbstractParseTreeVisitor;
 import Type.Type;
 import Type.UnknownType;
 import org.antlr.v4.runtime.tree.ParseTree;
-
+import Asm.IO;
 public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements grammarTCLVisitor<Program> {
 
 
@@ -16,6 +16,9 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
     private Map<UnknownType, Type> types;
     private int resultRegister;
     private int heapPointer = 1000;
+    private final int stackPointerRegister = 1; // ou 1
+
+
     private int registerCounter = 0; // Compteur de registre pour suivre leur utilisation
     private Map<String, Integer> variableRegisters = new HashMap<>(); // Table de symboles pour associer les variables à leurs registres
 
@@ -23,13 +26,18 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
         this.types = types;
     }
     private final int returnRegister = 0;
-
+    private boolean isReserved(int r) {
+        return r == returnRegister || r == stackPointerRegister;
+    }
     /**
      * Génère un nouveau numéro de registre unique.
      * @return le numéro du nouveau registre
      */
     private int newRegister() {
-        return registerCounter++;
+        do {
+            registerCounter++;
+        } while (isReserved(registerCounter));
+        return registerCounter;
     }
 
     /**
@@ -219,23 +227,43 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
     @Override
     public Program visitCall(grammarTCLParser.CallContext ctx) {
         Program program = new Program();
-        String fctName = ctx.children.get(0).getText();
-        for (int i = 0; i < ctx.expr().size(); i++) {
+
+        int nbArgs = ctx.expr().size();
+
+        // 1) Push des arguments (ordre inverse)
+        for (int i = nbArgs - 1; i >= 0; i--) {
             Program argProg = visit(ctx.expr(i));
             program.addInstructions(argProg);
 
-            int argResReg = getResultRegister(argProg);
+            int argReg = getResultRegister(argProg);
 
-            int argReg = i + 1; // R1, R2, ...
-            // MOV argReg <- argResReg (MOV via ADD imm 0)
-            program.addInstruction(new UALi(UALi.Op.ADD, argReg, argResReg, 0));
+            // ST arg, SP
+            program.addInstruction(new Mem(Mem.Op.ST, argReg, stackPointerRegister));
+
+            // SP--
+            program.addInstruction(
+                    new UALi(UALi.Op.ADD, stackPointerRegister, stackPointerRegister, -1)
+            );
         }
-        program.addInstruction(new Call(fctName));
-        int dest = newRegister();
-        program.addInstruction(new UALi(UALi.Op.ADD, dest, 0, 0)); // dest = R0
+
+        // 2) CALL f
+        String fctName = ctx.VAR().getText();
+        program.addInstruction(new JumpCall(JumpCall.Op.CALL, fctName));
+
+        // 3) Nettoyage de la pile : SP += nbArgs
+        if (nbArgs > 0) {
+            program.addInstruction(
+                    new UALi(UALi.Op.ADD, stackPointerRegister, stackPointerRegister, nbArgs)
+            );
+        }
+
+        // 4) Résultat du call : R0 -> nouveau registre
+        int destReg = newRegister();
+        program.addInstruction(new UALi(UALi.Op.ADD, destReg, 0, 0));
 
         return program;
     }
+
 
     @Override
     public Program visitBoolean(grammarTCLParser.BooleanContext ctx) {
@@ -443,23 +471,26 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
     public Program visitDeclaration(grammarTCLParser.DeclarationContext ctx) {
         Program program = new Program();
 
-        // Récupération du nom de la variable
         String varName = ctx.children.get(1).getText();
-
-        // Allocation d'un nouveau registre pour la variable
         int destRegister = newRegister(varName);
-        // Initialisation de la variable à 0
-        Instruction zeroInstr = new UAL(UAL.Op.XOR, destRegister, destRegister, destRegister);
-        program.addInstruction(zeroInstr);
 
-        // Si une expression d'initialisation est présente
+        // Si une expression d'initialisation est présente : on calcule puis on ASSIGNE
         if (ctx.expr() != null) {
             Program exprProgram = visit(ctx.expr());
             program.addInstructions(exprProgram);
+
+            int exprReg = getResultRegister(exprProgram);
+
+            // x = expr (MOV via ADD imm 0)
+            program.addInstruction(new UALi(UALi.Op.ADD, destRegister, exprReg, 0));
+        } else {
+            // Pas d'initialisation -> x = 0
+            program.addInstruction(new UAL(UAL.Op.XOR, destRegister, destRegister, destRegister));
         }
 
         return program;
     }
+
 
     @Override
 public Program visitPrint(grammarTCLParser.PrintContext ctx) {
@@ -484,21 +515,26 @@ public Program visitPrint(grammarTCLParser.PrintContext ctx) {
     public Program visitAssignment(grammarTCLParser.AssignmentContext ctx) {
         Program program = new Program();
 
-        // on créé un nouveau registre pour la variable
-        int destRegister = newRegister();
-        Instruction zeroInstr = new UAL(UAL.Op.XOR, destRegister, destRegister, destRegister);
-        program.addInstruction(zeroInstr);
-
-        // on associe ce registre à la variable dans la table des symboles
         String varName = ctx.children.get(0).getText();
-        variableRegisters.replace(varName, destRegister);
+        Integer destRegister = variableRegisters.get(varName);
+        if (destRegister == null) {
+            throw new RuntimeException("Variable non déclarée : " + varName);
+        }
 
-        // on visite l'expression à assigner
-        Program exprProgram = visitChildren(ctx);
+
+        // Récupérer l'expression de droite (première expr trouvée)
+        grammarTCLParser.ExprContext rhs = ctx.expr(0); // <-- si ça compile, garde ça
+        Program exprProgram = visit(rhs);
+
 
         program.addInstructions(exprProgram);
+        int exprReg = getResultRegister(exprProgram);
+
+        program.addInstruction(new UALi(UALi.Op.ADD, destRegister, exprReg, 0));
         return program;
     }
+
+
 
     @Override
     public Program visitBlock(grammarTCLParser.BlockContext ctx) {
@@ -683,12 +719,28 @@ public Program visitPrint(grammarTCLParser.PrintContext ctx) {
 
         // s'il y a un return
         if (ctx.RETURN() != null) {
-            Program ep = visit(ctx.expr());   // calcule x
+
+            // === OPTIMISATION : return d'une simple variable ===
+            // Si l'expression est juste un identifiant (ex: "x"), on peut copier directement
+            // le registre de x dans R0, sans passer par visitVariable (qui ferait une copie inutile).
+            String exprText = ctx.expr().getText();
+            Integer varReg = variableRegisters.get(exprText);
+
+            if (varReg != null) {
+                // R0 <- varReg (seulement si nécessaire)
+                if (varReg != returnRegister) {
+                    p.addInstruction(new UALi(UALi.Op.ADD, returnRegister, varReg, 0));
+                }
+                p.addInstruction(new Ret());
+                return p; // on termine le core_fct ici
+            }
+
+            // === CAS GENERAL : return d'une vraie expression ===
+            Program ep = visit(ctx.expr());
             p.addInstructions(ep);
 
             int res = getResultRegister(ep);
 
-            // return = convention d'appel
             if (res != returnRegister) {
                 p.addInstruction(new UALi(UALi.Op.ADD, returnRegister, res, 0));
             }
@@ -700,16 +752,55 @@ public Program visitPrint(grammarTCLParser.PrintContext ctx) {
 
     @Override
     public Program visitDecl_fct(grammarTCLParser.Decl_fctContext ctx) {
-        Program p = visit(ctx.core_fct());
+        Program program = new Program();
 
+<<<<<<< HEAD
         String name = ctx.VAR(0).getText(); // nom de la fonction
         if (p != null && !p.getInstructions().isEmpty()) {
             p.getInstructions().get(0).setLabel(name);
+=======
+        // Nom de la fonction
+        String fctName = ctx.VAR(0).getText();
+
+        // =========================
+        // Prologue : récupérer les arguments depuis la pile
+        // =========================
+
+        int nbParams = ctx.VAR().size() - 1;
+
+        for (int i = 0; i < nbParams; i++) {
+
+            // SP++
+            program.addInstruction(
+                    new UALi(UALi.Op.ADD, stackPointerRegister, stackPointerRegister, 1)
+            );
+
+            // Nom du paramètre
+            String paramName = ctx.VAR(i + 1).getText();
+
+            // Nouveau registre pour le paramètre
+            int paramReg = newRegister(paramName);
+
+            // LD paramReg <- [SP]
+            program.addInstruction(
+                    new Mem(Mem.Op.LD, paramReg, stackPointerRegister)
+            );
+>>>>>>> 14b7a27716b83b303dddbbcb4fb9718294200d03
         }
-        return p;
+
+        // =========================
+        // Corps de la fonction
+        // =========================
+        Program body = visit(ctx.core_fct());
+        program.addInstructions(body);
+
+        // Mettre le label sur la première instruction
+        if (!program.getInstructions().isEmpty()) {
+            program.getInstructions().getFirst().setLabel(fctName);
+        }
+
+        return program;
     }
-
-
     @Override
     public Program visitMain(grammarTCLParser.MainContext ctx) {
         Program p = new Program();
