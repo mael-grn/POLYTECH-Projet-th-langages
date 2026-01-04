@@ -11,8 +11,34 @@ import java.util.HashMap;
 
 public class Main {
 	public static void main(String[] args) {
+		if (!new File(fichier).exists()) {
+            System.err.println("Erreur : fichier '" + fichier + "' introuvable.");
+            return;
+        }
 
 		try {
+			grammarTCLLexer lexer = new grammarTCLLexer(CharStreams.fromPath(new File(fichier).toPath()));
+            CommonTokenStream tokens = new CommonTokenStream(lexer);
+            grammarTCLParser parser = new grammarTCLParser(tokens);
+            ParseTree tree = parser.main();
+
+            TyperVisitor typer = new TyperVisitor();
+            typer.visit(tree);
+
+            System.out.println("=== TABLE DES SYMBOLES (Types finaux) ===");
+            Map<String, Type> symbolTable = typer.getSymbolTable();
+            Map<UnknownType, Type> substitutions = typer.getTypes();
+
+            if (symbolTable.isEmpty()) {
+                System.out.println("Aucune variable ou fonction déclarée.");
+            } else {
+                for (Map.Entry<String, Type> entry : symbolTable.entrySet()) {
+                    Type finalType = entry.getValue().substituteAll(substitutions);
+                    System.out.println("Nom: " + entry.getKey() + " => Type: " + finalType.toString());
+                }
+            }
+            System.out.println("\nAnalyse de type terminée avec succès.");
+
 			String inputFile = args.length > 0 ? args[0] : "input";
 			CharStream stream = CharStreams.fromFileName(inputFile);
 
@@ -35,6 +61,8 @@ public class Main {
 			writer.close();
 
 			System.out.println("Compilation terminée avec succès.");
+		} catch (Exception e) {
+            System.err.println("\n" + e.getMessage());
 		} catch (FileNotFoundException e) {
 			System.out.println("Fichier de sortie manquant.");
 			throw new RuntimeException(e);
