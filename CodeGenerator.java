@@ -64,7 +64,7 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
             throw new RuntimeException("Le programme est vide, impossible de récupérer le registre de résultat.");
         }
 
-        Instruction lastInstr = p.getInstructions().getLast();
+        Instruction lastInstr = p.getInstructions().get(p.getInstructions().size() - 1);
 
         if (lastInstr instanceof UAL) {
             return ((UAL) lastInstr).getDest();
@@ -435,8 +435,8 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
 
     @Override
     public Program visitTab_type(grammarTCLParser.Tab_typeContext ctx) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'visitTab_type'");
+        // Les types servent à l'analyseur mais ne génèrent pas de code
+        return new Program();
     }
 
     @Override
@@ -462,27 +462,23 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
     }
 
     @Override
-    public Program visitPrint(grammarTCLParser.PrintContext ctx) {
+public Program visitPrint(grammarTCLParser.PrintContext ctx) {
+    Program program = new Program();
 
-        String varName = ctx.VAR().getText();
-        int address = variableRegisters.get(varName);
-        int valueReg = newRegister();
-        Program program = new Program();
-        // Load address
-        int addrReg = newRegister();
-        Instruction zeroAddr = new UAL(UAL.Op.XOR, addrReg, addrReg, addrReg);
-        program.addInstruction(zeroAddr);
-        Instruction loadAddr = new UALi(UALi.Op.ADD, addrReg, addrReg, address);
-        program.addInstruction(loadAddr);
-        // Load value
-        Instruction loadInstr = new Mem(Mem.Op.LD, valueReg, addrReg);
-        program.addInstruction(loadInstr);
-        // Print
-        Instruction printInstr = new IO(IO.Op.PRINT, valueReg);
-        program.addInstruction(printInstr);
-        return program;
+    // 1. On ne visite pas d'expression car ta grammaire dit print(VAR)
+    // Mais on sait que juste avant, une déclaration ou une assignation 
+    // a mis une valeur dans un registre.
+    
+    // 2. On récupère le dernier registre utilisé par le compteur
+    int lastReg = getLastUsedRegister();
 
-    }
+    // 3. On génère l'instruction PRINT sur ce registre
+    program.addInstruction(new IO(IO.Op.PRINT, lastReg));
+
+    return program;
+}
+
+    
 
     @Override
     public Program visitAssignment(grammarTCLParser.AssignmentContext ctx) {
@@ -494,7 +490,7 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
         program.addInstruction(zeroInstr);
 
         // on associe ce registre à la variable dans la table des symboles
-        String varName = ctx.children.getFirst().getText();
+        String varName = ctx.children.get(0).getText();
         variableRegisters.replace(varName, destRegister);
 
         // on visite l'expression à assigner
@@ -708,7 +704,7 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
 
         String name = ctx.VAR(0).getText(); // nom de la fonction
         if (p != null && !p.getInstructions().isEmpty()) {
-            p.getInstructions().getFirst().setLabel(name);
+            p.getInstructions().get(0).setLabel(name);
         }
         return p;
     }
@@ -729,7 +725,7 @@ public class CodeGenerator extends AbstractParseTreeVisitor<Program> implements 
         if (mainProg != null) {
             // Mettre le label "main" sur la 1ère instruction du corps de main
             if (!mainProg.getInstructions().isEmpty()) {
-                mainProg.getInstructions().getFirst().setLabel("main");
+                mainProg.getInstructions().get(0).setLabel("main");
             }
             p.addInstructions(mainProg);
         }
