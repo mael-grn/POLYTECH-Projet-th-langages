@@ -821,7 +821,7 @@ public Program visitPrint(grammarTCLParser.PrintContext ctx) {
             }
             p.addInstructions(mainProg);
         }
-
+        p.addInstruction(new Stop());
         return p;
     }
 
