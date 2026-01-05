@@ -805,7 +805,7 @@ public Program visitPrint(grammarTCLParser.PrintContext ctx) {
     @Override
     public Program visitMain(grammarTCLParser.MainContext ctx) {
         Program p = new Program();
-
+        p.addInstruction(new JumpCall(JumpCall.Op.CALL, "main")); // Sauter les déclarations de fonctions au début
         // 1) Générer toutes les fonctions déclarées avant main
         for (grammarTCLParser.Decl_fctContext f : ctx.decl_fct()) {
             Program fp = visit(f);
