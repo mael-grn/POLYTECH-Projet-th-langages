@@ -196,16 +196,12 @@ public class TyperVisitor extends AbstractParseTreeVisitor<Type> implements gram
         // Done
         String typeName = ctx.getText();
 
-        if (typeName.equals("int")){
-            return new PrimitiveType(Type.Base.INT);
-        }
-        if (typeName.equals("bool")){
-            return new PrimitiveType(Type.Base.BOOL);
-        }
-        if (typeName.equals("auto")){
-            return new UnknownType();
-        }
-        return null;
+        return switch (typeName) {
+            case "int" -> new PrimitiveType(Type.Base.INT);
+            case "bool" -> new PrimitiveType(Type.Base.BOOL);
+            case "auto" -> new UnknownType();
+            default -> null;
+        };
     }
 
     @Override
@@ -258,15 +254,22 @@ public class TyperVisitor extends AbstractParseTreeVisitor<Type> implements gram
         }
 
         Type curType = symbolTable.get(varName);
+        List<grammarTCLParser.ExprContext> allExprs = ctx.expr();
+        int size = allExprs.size();
 
-        for (grammarTCLParser.ExprContext indexCtx : ctx.expr()) {
+        // La grammaire garantit normalement qu'il y a au moins 1 expr (la valeur)
+        // Les index vont de 0 à size-2
+        List<grammarTCLParser.ExprContext> indexExprs = allExprs.subList(0, size - 1);
+        grammarTCLParser.ExprContext valueExpr = allExprs.get(size - 1);
+
+        for (grammarTCLParser.ExprContext indexCtx : indexExprs) {
             Type indexType = indexCtx.accept(this);
             this.updateSubstitutions(indexType.unify(new PrimitiveType(Type.Base.INT)));
             Type contentVar = new UnknownType();
             this.updateSubstitutions(curType.unify(new ArrayType(contentVar)));
             curType = applyAll(contentVar);
         }
-        Type rightSideType = ctx.expr(ctx.expr().size() -1).accept(this);
+        Type rightSideType = valueExpr.accept(this);
         this.updateSubstitutions(curType.unify(rightSideType));
         return applyAll(curType);
     }
